@@ -32,6 +32,27 @@ const AppDetail = () => {
 
   useEffect(() => {
     fetchAppDetails();
+
+    // Set up real-time subscription for app updates
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'apps',
+          filter: `id=eq.${id}`
+        },
+        () => {
+          fetchAppDetails();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [id]);
 
   const fetchAppDetails = async () => {
@@ -159,7 +180,7 @@ const AppDetail = () => {
                   </div>
                   <div className="flex justify-between">
                     <span>Price</span>
-                    <span className="font-medium">{app.is_free ? 'Free' : app.price}</span>
+                    <span className="font-medium">{app.is_free ? 'Free' : app.price || '$0.00'}</span>
                   </div>
                 </div>
               </div>

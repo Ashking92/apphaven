@@ -10,11 +10,13 @@ import { useToast } from '@/hooks/use-toast';
 import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/context/AuthContext';
 
 const Index = () => {
   const [apps, setApps] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { isAdmin } = useAuth();
 
   useEffect(() => {
     fetchApps();
@@ -72,11 +74,20 @@ const Index = () => {
           <div className="py-8">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-gray-800 dark:text-white">All Apps</h2>
-              <Link to="/categories">
-                <Button variant="ghost" className="flex items-center text-primary">
-                  Browse by category <ArrowRight className="ml-1 h-4 w-4" />
-                </Button>
-              </Link>
+              <div className="flex space-x-2">
+                <Link to="/categories">
+                  <Button variant="ghost" className="flex items-center text-primary">
+                    Browse by category <ArrowRight className="ml-1 h-4 w-4" />
+                  </Button>
+                </Link>
+                {isAdmin && (
+                  <Link to="/admin">
+                    <Button variant="outline" className="flex items-center">
+                      Admin Dashboard
+                    </Button>
+                  </Link>
+                )}
+              </div>
             </div>
             
             {loading ? (

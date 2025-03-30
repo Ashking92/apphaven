@@ -9,28 +9,28 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, adminOnly = false }) => {
-  const { user, isAdmin, isLoading } = useAuth();
+  const { isAuthenticated, isAdmin, loading } = useAuth();
 
-  // Show loading state or spinner while checking auth
-  if (isLoading) {
+  if (loading) {
+    // Show loading state while checking authentication
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center h-screen">
         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
       </div>
     );
   }
-  
+
   // If not authenticated, redirect to login
-  if (!user) {
-    return <Navigate to="/auth" replace />;
+  if (!isAuthenticated) {
+    return <Navigate to="/auth" />;
   }
-  
-  // If admin only route and user is not an admin
+
+  // If admin only and user is not admin, redirect to home
   if (adminOnly && !isAdmin) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/" />;
   }
-  
-  // User is authenticated (and is admin if required)
+
+  // If authenticated (and admin if required), render the children
   return <>{children}</>;
 };
 

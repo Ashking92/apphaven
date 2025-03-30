@@ -1,201 +1,203 @@
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Search, Menu, X, Moon, Sun, User, LogOut, Settings } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Moon, Sun, Menu, X, LogIn, LogOut, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { useTheme } from '@/context/ThemeContext';
-import { useAuth } from '@/context/AuthContext';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
+import { useTheme } from '@/context/ThemeContext';
+import { useAuth } from '@/context/AuthContext';
+import { toast } from "sonner";
 
-const Navbar = () => {
+const Navbar: React.FC = () => {
+  const { theme, setTheme } = useTheme();
+  const { user, isAuthenticated, isAdmin, signOut } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const { theme, toggleTheme } = useTheme();
-  const { user, profile, isAdmin, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Searching for:', searchQuery);
-    // Search functionality will be implemented here
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast.success("Signed out successfully");
+      navigate('/');
+    } catch (error: any) {
+      toast.error("Error signing out: " + error.message);
+    }
   };
 
   return (
-    <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border shadow-sm">
+    <header className="bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between h-16">
           <div className="flex items-center">
-            <Link to="/" className="flex items-center">
-              <span className="text-primary font-bold text-xl">AppHaven</span>
-              <span className="text-foreground font-bold text-xl ml-1">Hub</span>
+            <Link to="/" className="flex-shrink-0 flex items-center">
+              <span className="text-xl font-bold text-primary">AppStore</span>
             </Link>
+            <nav className="hidden md:ml-6 md:flex md:space-x-8">
+              <Link
+                to="/"
+                className="text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary px-3 py-2 text-sm font-medium"
+              >
+                Home
+              </Link>
+              <Link
+                to="/categories"
+                className="text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary px-3 py-2 text-sm font-medium"
+              >
+                Categories
+              </Link>
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  className="text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary px-3 py-2 text-sm font-medium"
+                >
+                  Admin Dashboard
+                </Link>
+              )}
+            </nav>
           </div>
-
-          {/* Desktop search bar */}
-          <div className="hidden md:block flex-1 max-w-md mx-8">
-            <form onSubmit={handleSearch} className="relative">
-              <Input
-                type="text"
-                placeholder="Search apps..."
-                className="pl-10 pr-4 py-2 w-full"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            </form>
-          </div>
-
-          {/* Desktop navigation */}
-          <div className="hidden md:flex items-center space-x-4">
-            <Link to="/categories" className="text-foreground hover:text-primary px-3 py-2 rounded-md text-sm font-medium">
-              Categories
-            </Link>
-            <Link to="/featured" className="text-foreground hover:text-primary px-3 py-2 rounded-md text-sm font-medium">
-              Featured
-            </Link>
-            
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={toggleTheme} 
-              className="text-foreground"
-              aria-label="Toggle theme"
-            >
-              {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            </Button>
-            
-            {user ? (
+          <div className="flex items-center">
+            <div className="flex-shrink-0 hidden md:flex md:items-center md:ml-4 md:space-x-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full">
-                    <User className="h-5 w-5" />
+                  <Button variant="ghost" size="icon">
+                    {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>
-                    {profile?.username || user.email}
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {isAdmin && (
-                    <DropdownMenuItem asChild>
-                      <Link to="/admin" className="w-full cursor-pointer">
-                        <Settings className="mr-2 h-4 w-4" />
-                        Admin Dashboard
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem onClick={() => signOut()}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Sign Out
-                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTheme('light')}>Light</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTheme('dark')}>Dark</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTheme('system')}>System</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            ) : (
-              <Button variant="default" size="sm" asChild>
-                <Link to="/auth">Sign In</Link>
-              </Button>
-            )}
-          </div>
 
-          {/* Mobile menu button */}
-          <div className="md:hidden flex items-center">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={toggleTheme} 
-              className="mr-2 text-foreground"
-              aria-label="Toggle theme"
-            >
-              {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            </Button>
-            <button
-              onClick={toggleMenu}
-              className="text-foreground hover:text-primary focus:outline-none"
-              aria-label="Toggle menu"
-            >
-              {isMenuOpen ? (
-                <X className="h-6 w-6" />
+              {isAuthenticated ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <User className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem className="text-muted-foreground">
+                      {user?.email}
+                    </DropdownMenuItem>
+                    {isAdmin && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin">Admin Dashboard</Link>
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem onClick={handleSignOut}>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               ) : (
-                <Menu className="h-6 w-6" />
+                <Button variant="outline" onClick={() => navigate('/auth')}>
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Sign In
+                </Button>
               )}
-            </button>
+            </div>
+
+            {/* Mobile menu button */}
+            <div className="flex items-center md:hidden">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setTheme('light')}>Light</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTheme('dark')}>Dark</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTheme('system')}>System</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <button
+                type="button"
+                className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary ml-1"
+                onClick={toggleMenu}
+              >
+                <span className="sr-only">Open main menu</span>
+                {isMenuOpen ? (
+                  <X className="block h-6 w-6" aria-hidden="true" />
+                ) : (
+                  <Menu className="block h-6 w-6" aria-hidden="true" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Mobile menu */}
-      {isMenuOpen && (
-        <div className="md:hidden bg-background py-2 px-4 shadow-inner">
-          <form onSubmit={handleSearch} className="relative mb-4">
-            <Input
-              type="text"
-              placeholder="Search apps..."
-              className="pl-10 pr-4 py-2 w-full"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-          </form>
-          <div className="flex flex-col space-y-2">
+      {/* Mobile menu, show/hide based on menu state */}
+      <div className={`md:hidden ${isMenuOpen ? 'block' : 'hidden'}`}>
+        <div className="pt-2 pb-3 space-y-1">
+          <Link
+            to="/"
+            className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-700"
+            onClick={toggleMenu}
+          >
+            Home
+          </Link>
+          <Link
+            to="/categories"
+            className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-700"
+            onClick={toggleMenu}
+          >
+            Categories
+          </Link>
+          {isAdmin && (
             <Link
-              to="/categories"
-              className="text-foreground hover:text-primary px-2 py-2 rounded-md text-base font-medium"
-              onClick={() => setIsMenuOpen(false)}
+              to="/admin"
+              className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-700"
+              onClick={toggleMenu}
             >
-              Categories
+              Admin Dashboard
             </Link>
-            <Link
-              to="/featured"
-              className="text-foreground hover:text-primary px-2 py-2 rounded-md text-base font-medium"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Featured
-            </Link>
-            {isAdmin && (
-              <Link
-                to="/admin"
-                className="text-foreground hover:text-primary px-2 py-2 rounded-md text-base font-medium"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Admin Dashboard
-              </Link>
-            )}
-            {user ? (
-              <Button 
-                variant="default" 
-                className="w-full justify-center mt-2"
+          )}
+        </div>
+        <div className="pt-4 pb-3 border-t border-gray-200 dark:border-gray-700">
+          {isAuthenticated ? (
+            <div className="space-y-1">
+              <div className="block px-4 py-2 text-base font-medium text-gray-500 dark:text-gray-400">
+                {user?.email}
+              </div>
+              <button
                 onClick={() => {
-                  signOut();
-                  setIsMenuOpen(false);
+                  handleSignOut();
+                  toggleMenu();
                 }}
+                className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-700 w-full text-left"
               >
                 Sign Out
-              </Button>
-            ) : (
-              <Button 
-                variant="default" 
-                className="w-full justify-center mt-2"
-                onClick={() => setIsMenuOpen(false)}
-                asChild
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <Link
+                to="/auth"
+                className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-700"
+                onClick={toggleMenu}
               >
-                <Link to="/auth">Sign In</Link>
-              </Button>
-            )}
-          </div>
+                Sign In
+              </Link>
+            </div>
+          )}
         </div>
-      )}
-    </nav>
+      </div>
+    </header>
   );
 };
 
