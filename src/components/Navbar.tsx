@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Menu, X, Moon, Sun, User, Upload, LogOut } from 'lucide-react';
+import { Search, Menu, X, Moon, Sun, User, LogOut, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTheme } from '@/context/ThemeContext';
@@ -89,9 +89,9 @@ const Navbar = () => {
                   <DropdownMenuSeparator />
                   {isAdmin && (
                     <DropdownMenuItem asChild>
-                      <Link to="/upload" className="w-full cursor-pointer">
-                        <Upload className="mr-2 h-4 w-4" />
-                        Upload App
+                      <Link to="/admin" className="w-full cursor-pointer">
+                        <Settings className="mr-2 h-4 w-4" />
+                        Admin Dashboard
                       </Link>
                     </DropdownMenuItem>
                   )}
@@ -164,11 +164,11 @@ const Navbar = () => {
             </Link>
             {isAdmin && (
               <Link
-                to="/upload"
+                to="/admin"
                 className="text-foreground hover:text-primary px-2 py-2 rounded-md text-base font-medium"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Upload App
+                Admin Dashboard
               </Link>
             )}
             {user ? (

@@ -13,6 +13,7 @@ import UploadApp from "./pages/UploadApp";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminDashboard from "./pages/AdminDashboard";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,14 @@ const App = () => (
                 element={
                   <ProtectedRoute adminOnly>
                     <UploadApp />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin" 
+                element={
+                  <ProtectedRoute adminOnly>
+                    <AdminDashboard />
                   </ProtectedRoute>
                 } 
               />

@@ -1,81 +1,85 @@
 
-import React from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Star, Download, Share, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
-// Sample app data - in a real app, this would come from an API
-const appData = {
-  '1': {
-    id: '1',
-    name: 'PhotoEditorPro',
-    developer: 'Creative Studios',
-    category: 'Photography',
-    rating: 4.8,
-    downloads: '5M+',
-    size: '45MB',
-    version: '2.3.1',
-    lastUpdated: '2023-10-15',
-    description: 'A powerful photo editing app with professional tools for enhancing your images. Features include advanced filters, layer support, color correction, and much more. Perfect for both amateur photographers and professionals.',
-    imageUrl: 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&q=80&w=500',
-    screenshots: [
-      'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&q=80&w=500',
-      'https://images.unsplash.com/photo-1552083375-1447ce886485?auto=format&fit=crop&q=80&w=500',
-      'https://images.unsplash.com/photo-1629757509637-7c99379d6d26?auto=format&fit=crop&q=80&w=500',
-      'https://images.unsplash.com/photo-1579403124614-197f69d8187b?auto=format&fit=crop&q=80&w=500'
-    ],
-    free: false,
-    price: '$4.99',
-    features: [
-      'Professional-grade photo editing tools',
-      'Advanced filters and effects',
-      'Layer support with blending modes',
-      'Color correction and enhancement',
-      'Retouching and healing brushes',
-      'Export in multiple formats',
-      'Cloud sync for your projects'
-    ]
-  },
-  '2': {
-    id: '2',
-    name: 'Fitness Tracker',
-    developer: 'Health Apps Inc',
-    category: 'Health',
-    rating: 4.6,
-    downloads: '2M+',
-    size: '32MB',
-    version: '3.1.0',
-    lastUpdated: '2023-09-28',
-    description: 'Track your workouts, measure your progress, and reach your fitness goals with this comprehensive fitness tracking app. Monitor your steps, calories, and activity throughout the day. Create custom workout plans and follow guided exercises.',
-    imageUrl: 'https://images.unsplash.com/photo-1509628061459-1328d06c2ced?auto=format&fit=crop&q=80&w=500',
-    screenshots: [
-      'https://images.unsplash.com/photo-1509628061459-1328d06c2ced?auto=format&fit=crop&q=80&w=500',
-      'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&q=80&w=500',
-      'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&q=80&w=500',
-      'https://images.unsplash.com/photo-1530549387789-4c1017266635?auto=format&fit=crop&q=80&w=500'
-    ],
-    free: true,
-    price: '', // Added empty price property to fix type error
-    features: [
-      'Step counter and activity tracking',
-      'Workout planner with over 100 exercises',
-      'Calorie counter and nutrition log',
-      'Progress tracking with detailed statistics',
-      'Goal setting and achievements',
-      'Connect with friends for motivation',
-      'Integration with health devices'
-    ]
-  },
-  // Add more app data for other IDs as needed
-};
+interface AppData {
+  id: string;
+  name: string;
+  developer: string;
+  category: string;
+  is_free: boolean;
+  price: string | null;
+  description: string;
+  version: string;
+  features: string[];
+  created_at: string;
+}
 
 const AppDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const app = appData[id as keyof typeof appData];
+  const [app, setApp] = useState<AppData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchAppDetails();
+  }, [id]);
+
+  const fetchAppDetails = async () => {
+    try {
+      setLoading(true);
+      
+      if (!id) {
+        navigate('/');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('apps')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      
+      if (!data) {
+        navigate('/not-found');
+        return;
+      }
+      
+      setApp(data);
+    } catch (error: any) {
+      toast({
+        title: 'Error fetching app details',
+        description: error.message,
+        variant: 'destructive',
+      });
+      navigate('/');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Navbar />
+        <div className="flex-grow flex items-center justify-center">
+          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!app) {
     return (
@@ -95,6 +99,20 @@ const AppDetail = () => {
     );
   }
 
+  // Sample data for the UI elements that aren't in the database yet
+  const mockData = {
+    rating: 4.5,
+    downloads: '0+',
+    size: '30MB',
+    lastUpdated: new Date(app.created_at).toLocaleDateString(),
+    screenshots: [
+      'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&q=80&w=500',
+      'https://images.unsplash.com/photo-1552083375-1447ce886485?auto=format&fit=crop&q=80&w=500',
+      'https://images.unsplash.com/photo-1629757509637-7c99379d6d26?auto=format&fit=crop&q=80&w=500',
+      'https://images.unsplash.com/photo-1579403124614-197f69d8187b?auto=format&fit=crop&q=80&w=500'
+    ]
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
@@ -108,7 +126,7 @@ const AppDetail = () => {
             <div className="md:flex">
               <div className="md:w-1/3 p-6">
                 <img 
-                  src={app.imageUrl} 
+                  src="https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&q=80&w=500" 
                   alt={app.name} 
                   className="w-full h-auto max-w-xs mx-auto rounded-lg shadow-md" 
                 />
@@ -129,19 +147,19 @@ const AppDetail = () => {
                   </div>
                   <div className="flex justify-between">
                     <span>Updated</span>
-                    <span className="font-medium">{app.lastUpdated}</span>
+                    <span className="font-medium">{mockData.lastUpdated}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Size</span>
-                    <span className="font-medium">{app.size}</span>
+                    <span className="font-medium">{mockData.size}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Installs</span>
-                    <span className="font-medium">{app.downloads}</span>
+                    <span className="font-medium">{mockData.downloads}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Price</span>
-                    <span className="font-medium">{app.free ? 'Free' : app.price}</span>
+                    <span className="font-medium">{app.is_free ? 'Free' : app.price}</span>
                   </div>
                 </div>
               </div>
@@ -162,18 +180,20 @@ const AppDetail = () => {
                     {[...Array(5)].map((_, i) => (
                       <Star 
                         key={i} 
-                        className={`h-5 w-5 ${i < Math.floor(app.rating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} 
+                        className={`h-5 w-5 ${i < Math.floor(mockData.rating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} 
                       />
                     ))}
                   </div>
-                  <span className="ml-2 text-gray-600 dark:text-gray-400">{app.rating}</span>
+                  <span className="ml-2 text-gray-600 dark:text-gray-400">{mockData.rating}</span>
                 </div>
 
                 <Tabs defaultValue="description">
                   <TabsList className="mb-4">
                     <TabsTrigger value="description">Description</TabsTrigger>
                     <TabsTrigger value="screenshots">Screenshots</TabsTrigger>
-                    <TabsTrigger value="features">Features</TabsTrigger>
+                    {app.features && app.features.length > 0 && (
+                      <TabsTrigger value="features">Features</TabsTrigger>
+                    )}
                   </TabsList>
                   
                   <TabsContent value="description">
@@ -184,7 +204,7 @@ const AppDetail = () => {
                   
                   <TabsContent value="screenshots">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {app.screenshots.map((screenshot, index) => (
+                      {mockData.screenshots.map((screenshot, index) => (
                         <div key={index} className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
                           <img 
                             src={screenshot} 
@@ -196,16 +216,18 @@ const AppDetail = () => {
                     </div>
                   </TabsContent>
                   
-                  <TabsContent value="features">
-                    <ul className="space-y-2">
-                      {app.features.map((feature, index) => (
-                        <li key={index} className="flex items-start">
-                          <span className="mr-2 text-primary">•</span>
-                          <span className="text-gray-700 dark:text-gray-300">{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </TabsContent>
+                  {app.features && app.features.length > 0 && (
+                    <TabsContent value="features">
+                      <ul className="space-y-2">
+                        {app.features.map((feature, index) => (
+                          <li key={index} className="flex items-start">
+                            <span className="mr-2 text-primary">•</span>
+                            <span className="text-gray-700 dark:text-gray-300">{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </TabsContent>
+                  )}
                 </Tabs>
               </div>
             </div>

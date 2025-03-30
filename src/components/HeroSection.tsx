@@ -19,9 +19,6 @@ const HeroSection: React.FC = () => {
               <Button size="lg" className="bg-white text-primary hover:bg-blue-50">
                 <Link to="/categories">Explore Apps</Link>
               </Button>
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
-                <Link to="/upload">Upload Your App</Link>
-              </Button>
             </div>
           </div>
           <div className="md:w-1/2 flex justify-center">
