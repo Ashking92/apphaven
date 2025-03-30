@@ -10,10 +10,10 @@ const HeroSection: React.FC = () => {
         <div className="flex flex-col md:flex-row items-center">
           <div className="md:w-1/2 mb-8 md:mb-0 pr-0 md:pr-8">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Your Ultimate App Destination
+              App Haven
             </h1>
             <p className="text-lg md:text-xl mb-6 text-blue-50">
-              Discover amazing applications, showcase your projects, and connect with users. The perfect platform for app creators and enthusiasts.
+              Welcome to my personal app project website, where innovation meets functionality, creating solutions for tomorrow's challenges.
             </p>
             <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
               <Button size="lg" className="bg-white text-primary hover:bg-blue-50">

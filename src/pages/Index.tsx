@@ -11,11 +11,12 @@ import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
+import { toast } from "sonner";
 
 const Index = () => {
   const [apps, setApps] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
+  const { toast: hookToast } = useToast();
   const { isAdmin } = useAuth();
 
   useEffect(() => {
@@ -27,12 +28,43 @@ const Index = () => {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
+          schema: 'public',
+          table: 'apps'
+        },
+        (payload) => {
+          fetchApps();
+          toast.info("New app available!", {
+            description: `${payload.new.name} has been added to the store.`
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
           schema: 'public',
           table: 'apps'
         },
         () => {
           fetchApps();
+          toast.info("App store updated", {
+            description: "An app has been removed from the store."
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'apps'
+        },
+        (payload) => {
+          fetchApps();
+          toast.info("App updated", {
+            description: `${payload.new.name} has been updated.`
+          });
         }
       )
       .subscribe();
@@ -53,7 +85,7 @@ const Index = () => {
       if (error) throw error;
       setApps(data || []);
     } catch (error: any) {
-      toast({
+      hookToast({
         title: 'Error fetching apps',
         description: error.message,
         variant: 'destructive',
@@ -72,9 +104,9 @@ const Index = () => {
           
           {/* Apps Section */}
           <div className="py-8">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
               <h2 className="text-2xl font-bold text-gray-800 dark:text-white">All Apps</h2>
-              <div className="flex space-x-2">
+              <div className="flex flex-wrap gap-2">
                 <Link to="/categories">
                   <Button variant="ghost" className="flex items-center text-primary">
                     Browse by category <ArrowRight className="ml-1 h-4 w-4" />
@@ -111,8 +143,9 @@ const Index = () => {
                         category={app.category}
                         rating={4.5} // Default rating
                         downloads="0+" // Default downloads
-                        imageUrl="https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&q=80&w=500" // Default image
+                        imageUrl={app.icon_url || "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&q=80&w=500"} // Use uploaded icon or default
                         free={app.is_free}
+                        price={app.price}
                       />
                     ))}
                   </div>
