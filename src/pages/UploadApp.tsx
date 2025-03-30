@@ -11,10 +11,14 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
+import { v4 as uuidv4 } from 'uuid';
 
 const UploadApp = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   
   const [appData, setAppData] = useState({
     name: '',
@@ -27,6 +31,7 @@ const UploadApp = () => {
     features: ['', '', '']
   });
   
+  const [isUploading, setIsUploading] = useState(false);
   const [appIcon, setAppIcon] = useState<File | null>(null);
   const [appFile, setAppFile] = useState<File | null>(null);
   const [screenshots, setScreenshots] = useState<File[]>([]);
@@ -99,8 +104,23 @@ const UploadApp = () => {
     setScreenshots(updatedScreenshots);
     setPreviewUrls(updatedUrls);
   };
+
+  const uploadFile = async (file: File, bucket: string, folderPath: string) => {
+    const fileExt = file.name.split('.').pop();
+    const filePath = `${folderPath}/${uuidv4()}.${fileExt}`;
+    
+    const { error: uploadError, data } = await supabase.storage
+      .from(bucket)
+      .upload(filePath, file);
+      
+    if (uploadError) {
+      throw new Error(`Error uploading file: ${uploadError.message}`);
+    }
+    
+    return filePath;
+  };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validation
@@ -112,33 +132,86 @@ const UploadApp = () => {
       });
       return;
     }
+
+    if (!appData.isFree && !appData.price) {
+      toast({
+        title: "Price Required",
+        description: "Please enter a price for your app.",
+        variant: "destructive"
+      });
+      return;
+    }
     
-    // In a real app, this would handle the API upload
-    console.log('App data:', appData);
-    console.log('App icon:', appIcon);
-    console.log('App file:', appFile);
-    console.log('Screenshots:', screenshots);
+    setIsUploading(true);
     
-    toast({
-      title: "App Submitted",
-      description: "Your app has been successfully submitted for review.",
-    });
-    
-    // Redirect to home page after successful upload
-    setTimeout(() => {
-      navigate('/');
-    }, 2000);
+    try {
+      // Upload app icon
+      const appIconPath = await uploadFile(appIcon, 'app_files', 'icons');
+      
+      // Upload app file
+      const appFilePath = await uploadFile(appFile, 'app_files', 'applications');
+      
+      // Upload screenshots
+      const screenshotPaths = [];
+      for (const screenshot of screenshots) {
+        const path = await uploadFile(screenshot, 'app_screenshots', 'screenshots');
+        screenshotPaths.push(path);
+      }
+      
+      // Convert non-empty features to array
+      const filteredFeatures = appData.features.filter(feature => feature.trim() !== '');
+      
+      // Create app record in database
+      const { error: insertError } = await supabase.from('apps').insert({
+        name: appData.name,
+        description: appData.description,
+        category: appData.category,
+        version: appData.version,
+        developer: appData.developer,
+        is_free: appData.isFree,
+        price: appData.isFree ? null : appData.price,
+        features: filteredFeatures,
+        uploaded_by: user?.id,
+        icon_path: appIconPath,
+        file_path: appFilePath,
+        screenshot_paths: screenshotPaths
+      });
+      
+      if (insertError) {
+        throw new Error(`Error creating app record: ${insertError.message}`);
+      }
+      
+      toast({
+        title: "App Submitted",
+        description: "Your app has been successfully uploaded.",
+      });
+      
+      // Redirect to home page after successful upload
+      setTimeout(() => {
+        navigate('/');
+      }, 2000);
+      
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Upload Failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
   
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
-      <main className="flex-grow bg-gray-50 dark:bg-gray-900">
+      <main className="flex-grow bg-muted dark:bg-background">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md overflow-hidden border border-gray-200 dark:border-gray-700">
+          <div className="bg-card dark:bg-card rounded-2xl shadow-md overflow-hidden border border-border">
             <div className="p-6 sm:p-10">
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Upload Your App</h1>
-              <p className="text-gray-600 dark:text-gray-400 mb-8">
+              <h1 className="text-3xl font-bold text-card-foreground mb-6">Upload Your App</h1>
+              <p className="text-muted-foreground mb-8">
                 Share your application with our community. Fill in the details below to get started.
               </p>
               
@@ -273,10 +346,10 @@ const UploadApp = () => {
                   <div className="grid gap-6 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="app-icon">App Icon*</Label>
-                      <div className="flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6">
+                      <div className="flex items-center justify-center border-2 border-dashed border-border rounded-lg p-6">
                         <label className="flex flex-col items-center cursor-pointer">
-                          <Upload className="h-8 w-8 text-gray-400 mb-2" />
-                          <span className="text-sm text-gray-500">Upload Icon (512x512px)</span>
+                          <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                          <span className="text-sm text-muted-foreground">Upload Icon (512x512px)</span>
                           <Input
                             id="app-icon"
                             type="file"
@@ -287,16 +360,16 @@ const UploadApp = () => {
                         </label>
                       </div>
                       {appIcon && (
-                        <p className="text-sm text-gray-600 mt-2">{appIcon.name}</p>
+                        <p className="text-sm text-muted-foreground mt-2">{appIcon.name}</p>
                       )}
                     </div>
                     
                     <div className="space-y-2">
                       <Label htmlFor="app-file">App Package*</Label>
-                      <div className="flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6">
+                      <div className="flex items-center justify-center border-2 border-dashed border-border rounded-lg p-6">
                         <label className="flex flex-col items-center cursor-pointer">
-                          <Upload className="h-8 w-8 text-gray-400 mb-2" />
-                          <span className="text-sm text-gray-500">Upload App File (.apk or .zip)</span>
+                          <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                          <span className="text-sm text-muted-foreground">Upload App File (.apk or .zip)</span>
                           <Input
                             id="app-file"
                             type="file"
@@ -307,17 +380,17 @@ const UploadApp = () => {
                         </label>
                       </div>
                       {appFile && (
-                        <p className="text-sm text-gray-600 mt-2">{appFile.name}</p>
+                        <p className="text-sm text-muted-foreground mt-2">{appFile.name}</p>
                       )}
                     </div>
                   </div>
                   
                   <div className="space-y-2">
                     <Label htmlFor="screenshots">Screenshots</Label>
-                    <div className="flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6">
+                    <div className="flex items-center justify-center border-2 border-dashed border-border rounded-lg p-6">
                       <label className="flex flex-col items-center cursor-pointer">
-                        <Upload className="h-8 w-8 text-gray-400 mb-2" />
-                        <span className="text-sm text-gray-500">Upload Screenshots (Max 5)</span>
+                        <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                        <span className="text-sm text-muted-foreground">Upload Screenshots (Max 5)</span>
                         <Input
                           id="screenshots"
                           type="file"
@@ -337,12 +410,12 @@ const UploadApp = () => {
                             <img
                               src={url}
                               alt={`Screenshot ${index + 1}`}
-                              className="h-24 w-full object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+                              className="h-24 w-full object-cover rounded-lg border border-border"
                             />
                             <button
                               type="button"
                               onClick={() => removeScreenshot(index)}
-                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                             >
                               <X className="h-3 w-3" />
                             </button>
@@ -357,8 +430,8 @@ const UploadApp = () => {
                   <Button type="button" variant="outline" onClick={() => navigate('/')}>
                     Cancel
                   </Button>
-                  <Button type="submit">
-                    Submit App
+                  <Button type="submit" disabled={isUploading}>
+                    {isUploading ? "Uploading..." : "Submit App"}
                   </Button>
                 </div>
               </form>
