@@ -1,0 +1,219 @@
+
+import React from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { Star, Download, Share, ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
+
+// Sample app data - in a real app, this would come from an API
+const appData = {
+  '1': {
+    id: '1',
+    name: 'PhotoEditorPro',
+    developer: 'Creative Studios',
+    category: 'Photography',
+    rating: 4.8,
+    downloads: '5M+',
+    size: '45MB',
+    version: '2.3.1',
+    lastUpdated: '2023-10-15',
+    description: 'A powerful photo editing app with professional tools for enhancing your images. Features include advanced filters, layer support, color correction, and much more. Perfect for both amateur photographers and professionals.',
+    imageUrl: 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&q=80&w=500',
+    screenshots: [
+      'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&q=80&w=500',
+      'https://images.unsplash.com/photo-1552083375-1447ce886485?auto=format&fit=crop&q=80&w=500',
+      'https://images.unsplash.com/photo-1629757509637-7c99379d6d26?auto=format&fit=crop&q=80&w=500',
+      'https://images.unsplash.com/photo-1579403124614-197f69d8187b?auto=format&fit=crop&q=80&w=500'
+    ],
+    free: false,
+    price: '$4.99',
+    features: [
+      'Professional-grade photo editing tools',
+      'Advanced filters and effects',
+      'Layer support with blending modes',
+      'Color correction and enhancement',
+      'Retouching and healing brushes',
+      'Export in multiple formats',
+      'Cloud sync for your projects'
+    ]
+  },
+  '2': {
+    id: '2',
+    name: 'Fitness Tracker',
+    developer: 'Health Apps Inc',
+    category: 'Health',
+    rating: 4.6,
+    downloads: '2M+',
+    size: '32MB',
+    version: '3.1.0',
+    lastUpdated: '2023-09-28',
+    description: 'Track your workouts, measure your progress, and reach your fitness goals with this comprehensive fitness tracking app. Monitor your steps, calories, and activity throughout the day. Create custom workout plans and follow guided exercises.',
+    imageUrl: 'https://images.unsplash.com/photo-1509628061459-1328d06c2ced?auto=format&fit=crop&q=80&w=500',
+    screenshots: [
+      'https://images.unsplash.com/photo-1509628061459-1328d06c2ced?auto=format&fit=crop&q=80&w=500',
+      'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&q=80&w=500',
+      'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&q=80&w=500',
+      'https://images.unsplash.com/photo-1530549387789-4c1017266635?auto=format&fit=crop&q=80&w=500'
+    ],
+    free: true,
+    features: [
+      'Step counter and activity tracking',
+      'Workout planner with over 100 exercises',
+      'Calorie counter and nutrition log',
+      'Progress tracking with detailed statistics',
+      'Goal setting and achievements',
+      'Connect with friends for motivation',
+      'Integration with health devices'
+    ]
+  },
+  // Add more app data for other IDs as needed
+};
+
+const AppDetail = () => {
+  const { id } = useParams<{ id: string }>();
+  const app = appData[id as keyof typeof appData];
+
+  if (!app) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Navbar />
+        <div className="flex-grow flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold">App not found</h1>
+            <p className="mt-2">The app you're looking for doesn't exist or has been removed.</p>
+            <Link to="/" className="mt-4 inline-block text-primary hover:underline">
+              Return to homepage
+            </Link>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col min-h-screen">
+      <Navbar />
+      <main className="flex-grow">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Link to="/" className="inline-flex items-center text-primary hover:underline mb-6">
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to home
+          </Link>
+
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-200 dark:border-gray-700 mb-8">
+            <div className="md:flex">
+              <div className="md:w-1/3 p-6">
+                <img 
+                  src={app.imageUrl} 
+                  alt={app.name} 
+                  className="w-full h-auto max-w-xs mx-auto rounded-lg shadow-md" 
+                />
+                
+                <div className="mt-6 space-y-4">
+                  <Button className="w-full" size="lg">
+                    <Download className="mr-2 h-5 w-5" /> Download
+                  </Button>
+                  <Button variant="outline" className="w-full">
+                    <Share className="mr-2 h-5 w-5" /> Share
+                  </Button>
+                </div>
+                
+                <div className="mt-6 space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                  <div className="flex justify-between">
+                    <span>Version</span>
+                    <span className="font-medium">{app.version}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Updated</span>
+                    <span className="font-medium">{app.lastUpdated}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Size</span>
+                    <span className="font-medium">{app.size}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Installs</span>
+                    <span className="font-medium">{app.downloads}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Price</span>
+                    <span className="font-medium">{app.free ? 'Free' : app.price}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="md:w-2/3 p-6 md:border-l md:border-gray-200 md:dark:border-gray-700">
+                <div className="flex flex-wrap justify-between items-start mb-4">
+                  <div>
+                    <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{app.name}</h1>
+                    <p className="text-gray-600 dark:text-gray-400 mt-1">{app.developer}</p>
+                  </div>
+                  <Badge variant="secondary" className="text-sm">
+                    {app.category}
+                  </Badge>
+                </div>
+                
+                <div className="flex items-center mb-6">
+                  <div className="flex">
+                    {[...Array(5)].map((_, i) => (
+                      <Star 
+                        key={i} 
+                        className={`h-5 w-5 ${i < Math.floor(app.rating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} 
+                      />
+                    ))}
+                  </div>
+                  <span className="ml-2 text-gray-600 dark:text-gray-400">{app.rating}</span>
+                </div>
+
+                <Tabs defaultValue="description">
+                  <TabsList className="mb-4">
+                    <TabsTrigger value="description">Description</TabsTrigger>
+                    <TabsTrigger value="screenshots">Screenshots</TabsTrigger>
+                    <TabsTrigger value="features">Features</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="description">
+                    <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                      {app.description}
+                    </p>
+                  </TabsContent>
+                  
+                  <TabsContent value="screenshots">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {app.screenshots.map((screenshot, index) => (
+                        <div key={index} className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+                          <img 
+                            src={screenshot} 
+                            alt={`${app.name} screenshot ${index + 1}`} 
+                            className="w-full h-auto object-cover" 
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="features">
+                    <ul className="space-y-2">
+                      {app.features.map((feature, index) => (
+                        <li key={index} className="flex items-start">
+                          <span className="mr-2 text-primary">•</span>
+                          <span className="text-gray-700 dark:text-gray-300">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </TabsContent>
+                </Tabs>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+      <Footer />
+    </div>
+  );
+};
+
+export default AppDetail;
