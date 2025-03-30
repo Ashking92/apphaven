@@ -59,6 +59,7 @@ const appData = {
       'https://images.unsplash.com/photo-1530549387789-4c1017266635?auto=format&fit=crop&q=80&w=500'
     ],
     free: true,
+    price: '', // Added empty price property to fix type error
     features: [
       'Step counter and activity tracking',
       'Workout planner with over 100 exercises',
