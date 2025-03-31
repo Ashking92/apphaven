@@ -2,6 +2,7 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
+import { toast } from 'sonner';
 
 interface AuthContextType {
   user: User | null;
@@ -35,40 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
 
-  useEffect(() => {
-    // Set up auth state listener first
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        // Check admin status when auth state changes
-        if (session?.user) {
-          setTimeout(() => {
-            checkAdminStatus(session.user.id);
-          }, 0);
-        } else {
-          setIsAdmin(false);
-        }
-      }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      // Check admin status for initial load
-      if (session?.user) {
-        checkAdminStatus(session.user.id);
-      }
-      
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
+  // Function to check admin status
   const checkAdminStatus = async (userId: string) => {
     try {
       console.log("Checking admin status for userId:", userId);
@@ -93,11 +61,68 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  useEffect(() => {
+    console.log("AuthProvider initialized");
+    
+    // First check for existing session synchronously
+    const setupAuth = async () => {
+      try {
+        // Check for existing session first
+        const { data: sessionData } = await supabase.auth.getSession();
+        console.log("Initial session check:", sessionData.session?.user?.id);
+        
+        if (sessionData.session) {
+          setSession(sessionData.session);
+          setUser(sessionData.session.user);
+          
+          // Check admin status if we have a user
+          if (sessionData.session.user) {
+            await checkAdminStatus(sessionData.session.user.id);
+          }
+        }
+      } catch (error) {
+        console.error("Error during auth setup:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, currentSession) => {
+        console.log("Auth state changed:", event, currentSession?.user?.id);
+        
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+        
+        // Check admin status when auth state changes
+        if (currentSession?.user) {
+          // Use setTimeout to avoid potential deadlocks with Supabase client
+          setTimeout(() => {
+            checkAdminStatus(currentSession.user.id);
+          }, 0);
+        } else {
+          setIsAdmin(false);
+        }
+      }
+    );
+
+    // Initial setup
+    setupAuth();
+
+    return () => {
+      console.log("Cleaning up auth subscription");
+      subscription.unsubscribe();
+    };
+  }, []);
+
   const signIn = async (email: string, password: string) => {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
     } catch (error: any) {
+      console.error("Sign in error:", error);
+      toast.error("Login failed", { description: error.message });
       throw error;
     }
   };
@@ -107,6 +132,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { error } = await supabase.auth.signUp({ email, password });
       if (error) throw error;
     } catch (error: any) {
+      console.error("Sign up error:", error);
+      toast.error("Signup failed", { description: error.message });
       throw error;
     }
   };
@@ -115,7 +142,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      setUser(null);
+      setSession(null);
+      setIsAdmin(false);
     } catch (error: any) {
+      console.error("Sign out error:", error);
+      toast.error("Sign out failed", { description: error.message });
       throw error;
     }
   };
@@ -125,6 +157,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { error } = await supabase.auth.resetPasswordForEmail(email);
       if (error) throw error;
     } catch (error: any) {
+      console.error("Reset password error:", error);
+      toast.error("Password reset failed", { description: error.message });
       throw error;
     }
   };
@@ -140,6 +174,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     resetPassword,
     loading,
   };
+
+  console.log("Auth context value:", { isAuthenticated: !!user, isAdmin, userId: user?.id });
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

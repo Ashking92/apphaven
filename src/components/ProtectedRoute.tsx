@@ -15,12 +15,18 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, adminOnly = f
 
   useEffect(() => {
     // Log authentication status for debugging
-    console.log("Auth status:", { isAuthenticated, isAdmin, loading, userId: user?.id });
+    console.log("ProtectedRoute:", { 
+      path: location.pathname,
+      isAuthenticated, 
+      isAdmin, 
+      loading, 
+      userId: user?.id 
+    });
     
-    if (!loading && adminOnly && !isAdmin) {
+    if (!loading && adminOnly && isAuthenticated && !isAdmin) {
       toast.error("You don't have permission to access this page");
     }
-  }, [isAuthenticated, isAdmin, loading, adminOnly, user]);
+  }, [isAuthenticated, isAdmin, loading, adminOnly, user, location.pathname]);
 
   if (loading) {
     // Show loading state while checking authentication
@@ -33,15 +39,18 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, adminOnly = f
 
   // If not authenticated, redirect to login
   if (!isAuthenticated) {
+    console.log("User not authenticated, redirecting to /auth");
     return <Navigate to="/auth" state={{ from: location.pathname }} />;
   }
 
   // If admin only and user is not admin, redirect to home
   if (adminOnly && !isAdmin) {
+    console.log("User is not admin, redirecting to /");
     return <Navigate to="/" />;
   }
 
   // If authenticated (and admin if required), render the children
+  console.log("Access granted to protected route");
   return <>{children}</>;
 };
 

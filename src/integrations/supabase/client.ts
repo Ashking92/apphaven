@@ -14,5 +14,16 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
+    detectSessionInUrl: true,
+    flowType: 'implicit'
+  }
+});
+
+// Log auth status on init for debugging
+supabase.auth.getSession().then(({ data, error }) => {
+  if (error) {
+    console.error('Error getting initial session:', error);
+  } else {
+    console.log('Initial auth session:', data.session ? 'Logged in' : 'Not logged in');
   }
 });

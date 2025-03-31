@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Star, Download, Share2, ArrowLeft, MessageCircle, ThumbsUp } from 'lucide-react';
@@ -146,24 +145,35 @@ const AppDetail = () => {
     if (!id) return;
 
     try {
+      console.log("Fetching reviews for app:", id);
       // Since there's no relationship established between app_reviews and profiles
       // in the database schema, we'll fetch reviews separately
       const { data, error } = await supabase
-        .from('app_reviews' as any)
+        .from('app_reviews')
         .select('*')
         .eq('app_id', id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      
+      console.log("Fetched reviews:", data);
 
       // Now we need to fetch usernames for each review
       const reviewsWithUsernames = await Promise.all(
-        data.map(async (review: any) => {
-          const { data: userData } = await supabase
+        (data || []).map(async (review: any) => {
+          const { data: userData, error: userError } = await supabase
             .from('profiles')
             .select('username')
             .eq('id', review.user_id)
             .single();
+
+          if (userError) {
+            console.error('Error fetching username:', userError);
+            return {
+              ...review,
+              username: 'Anonymous'
+            };
+          }
 
           return {
             ...review,
@@ -172,15 +182,20 @@ const AppDetail = () => {
         })
       );
 
+      console.log("Reviews with usernames:", reviewsWithUsernames);
       setReviews(reviewsWithUsernames);
       
       // Check if current user has reviewed
       if (user) {
         const hasReviewed = reviewsWithUsernames.some((review: Review) => review.user_id === user.id);
         setUserHasReviewed(hasReviewed);
+        console.log("User has reviewed:", hasReviewed);
       }
     } catch (error: any) {
       console.error('Error fetching reviews:', error);
+      toast.error('Error loading reviews', {
+        description: error.message
+      });
     }
   };
 
@@ -229,28 +244,39 @@ const AppDetail = () => {
 
     try {
       setSubmittingReview(true);
+      console.log("Submitting review for app:", id, "by user:", user.id);
 
       // First check if user already has a review
-      if (userHasReviewed) {
-        // Find the existing review
-        const existingReview = reviews.find(r => r.user_id === user.id);
-        if (existingReview) {
-          // Update existing review
-          const { error } = await supabase
-            .from('app_reviews' as any)
-            .update({
-              rating: userRating,
-              comment: userReview.trim()
-            })
-            .eq('id', existingReview.id);
+      const { data: existingReviews, error: checkError } = await supabase
+        .from('app_reviews')
+        .select('id')
+        .eq('app_id', id)
+        .eq('user_id', user.id);
 
-          if (error) throw error;
-          toast.success('Your review has been updated!');
-        }
+      if (checkError) {
+        console.error('Error checking existing reviews:', checkError);
+        throw checkError;
+      }
+
+      let result;
+      if (existingReviews && existingReviews.length > 0) {
+        // Update existing review
+        console.log("Updating existing review:", existingReviews[0].id);
+        result = await supabase
+          .from('app_reviews')
+          .update({
+            rating: userRating,
+            comment: userReview.trim()
+          })
+          .eq('id', existingReviews[0].id);
+        
+        if (result.error) throw result.error;
+        toast.success('Your review has been updated!');
       } else {
         // Insert new review
-        const { error } = await supabase
-          .from('app_reviews' as any)
+        console.log("Creating new review");
+        result = await supabase
+          .from('app_reviews')
           .insert({
             app_id: id,
             user_id: user.id,
@@ -258,16 +284,15 @@ const AppDetail = () => {
             comment: userReview.trim()
           });
 
-        if (error) {
-          // Check if it's a duplicate key error
-          if (error.code === '23505') { // PostgreSQL unique violation error code
+        if (result.error) {
+          if (result.error.code === '23505') { // PostgreSQL unique violation error code
             toast.error('You have already reviewed this app', {
               description: 'You can only submit one review per app'
             });
             setUserHasReviewed(true);
             return;
           }
-          throw error;
+          throw result.error;
         }
         
         toast.success('Review submitted successfully!');
@@ -276,6 +301,7 @@ const AppDetail = () => {
       setUserReview('');
       await fetchReviews(); // Refresh reviews after submission
     } catch (error: any) {
+      console.error('Failed to submit review:', error);
       toast.error('Failed to submit review', {
         description: error.message
       });
