@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Star, Download, Share2, ArrowLeft, MessageCircle, ThumbsUp } from 'lucide-react';
@@ -32,10 +31,10 @@ interface AppData {
   version: string;
   features: string[];
   created_at: string;
-  downloads: number;
-  icon_url?: string;
-  app_url?: string;
-  screenshots?: string[];
+  downloads: number | null;
+  icon_url?: string | null;
+  app_url?: string | null;
+  screenshots?: string[] | null;
 }
 
 interface Review {
@@ -120,7 +119,7 @@ const AppDetail = () => {
         return;
       }
       
-      setApp(data);
+      setApp(data as AppData);
     } catch (error: any) {
       hookToast({
         title: 'Error fetching app details',
@@ -138,10 +137,9 @@ const AppDetail = () => {
 
     try {
       const { data, error } = await supabase
-        .from('app_reviews')
+        .from('app_reviews' as any)
         .select('*, profiles(username)')
-        .eq('app_id', id)
-        .order('created_at', { ascending: false });
+        .eq('app_id', id);
 
       if (error) throw error;
 
@@ -165,12 +163,10 @@ const AppDetail = () => {
     if (!app) return;
 
     try {
-      // If there's an APK URL, open it
       if (app.app_url) {
         window.open(app.app_url, '_blank');
       }
 
-      // Increment download count
       const { error } = await supabase
         .from('apps')
         .update({ downloads: (app.downloads || 0) + 1 })
@@ -198,7 +194,6 @@ const AppDetail = () => {
         console.log('Error sharing:', error);
       });
     } else {
-      // Fallback for browsers that don't support the Web Share API
       navigator.clipboard.writeText(window.location.href);
       toast.success('Link copied to clipboard!');
     }
@@ -211,7 +206,7 @@ const AppDetail = () => {
       setSubmittingReview(true);
 
       const { error } = await supabase
-        .from('app_reviews')
+        .from('app_reviews' as any)
         .insert({
           app_id: id,
           user_id: user.id,
@@ -263,13 +258,12 @@ const AppDetail = () => {
   }
 
   const calculateAverageRating = () => {
-    if (reviews.length === 0) return 4.5; // Default rating
+    if (reviews.length === 0) return 4.5;
     const sum = reviews.reduce((acc, review) => acc + review.rating, 0);
     return (sum / reviews.length).toFixed(1);
   };
 
-  // Screenshots with fallback
-  const screenshots = app.screenshots || [
+  const screenshots = app?.screenshots || [
     'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&q=80&w=500',
     'https://images.unsplash.com/photo-1552083375-1447ce886485?auto=format&fit=crop&q=80&w=500',
     'https://images.unsplash.com/photo-1629757509637-7c99379d6d26?auto=format&fit=crop&q=80&w=500',
@@ -289,8 +283,8 @@ const AppDetail = () => {
             <div className="md:flex">
               <div className="md:w-1/3 p-6">
                 <img 
-                  src={app.icon_url || "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&q=80&w=500"} 
-                  alt={app.name} 
+                  src={app?.icon_url || "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&q=80&w=500"} 
+                  alt={app?.name} 
                   className="w-full h-auto max-w-xs mx-auto rounded-lg shadow-md" 
                 />
                 
@@ -306,19 +300,19 @@ const AppDetail = () => {
                 <div className="mt-6 space-y-2 text-sm text-gray-600 dark:text-gray-400">
                   <div className="flex justify-between">
                     <span>Version</span>
-                    <span className="font-medium">{app.version}</span>
+                    <span className="font-medium">{app?.version}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Updated</span>
-                    <span className="font-medium">{new Date(app.created_at).toLocaleDateString()}</span>
+                    <span className="font-medium">{app?.created_at && new Date(app.created_at).toLocaleDateString()}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Downloads</span>
-                    <span className="font-medium">{app.downloads || 0}</span>
+                    <span className="font-medium">{app?.downloads || 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Price</span>
-                    <span className="font-medium">{app.is_free ? 'Free' : app.price || '$0.00'}</span>
+                    <span className="font-medium">{app?.is_free ? 'Free' : app?.price || '$0.00'}</span>
                   </div>
                 </div>
               </div>
@@ -326,11 +320,11 @@ const AppDetail = () => {
               <div className="md:w-2/3 p-6 md:border-l md:border-gray-200 md:dark:border-gray-700">
                 <div className="flex flex-wrap justify-between items-start mb-4">
                   <div>
-                    <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{app.name}</h1>
-                    <p className="text-gray-600 dark:text-gray-400 mt-1">{app.developer}</p>
+                    <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{app?.name}</h1>
+                    <p className="text-gray-600 dark:text-gray-400 mt-1">{app?.developer}</p>
                   </div>
                   <Badge variant="secondary" className="text-sm">
-                    {app.category}
+                    {app?.category}
                   </Badge>
                 </div>
                 
@@ -359,7 +353,7 @@ const AppDetail = () => {
                   
                   <TabsContent value="description">
                     <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                      {app.description}
+                      {app?.description}
                     </p>
                   </TabsContent>
                   
@@ -369,7 +363,7 @@ const AppDetail = () => {
                         <div key={index} className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
                           <img 
                             src={screenshot} 
-                            alt={`${app.name} screenshot ${index + 1}`} 
+                            alt={`${app?.name} screenshot ${index + 1}`} 
                             className="w-full h-auto object-cover" 
                           />
                         </div>
@@ -391,7 +385,6 @@ const AppDetail = () => {
                   )}
 
                   <TabsContent value="reviews">
-                    {/* Add Review Section */}
                     {user ? (
                       <Card className="mb-6">
                         <CardHeader>
@@ -437,7 +430,6 @@ const AppDetail = () => {
                       </div>
                     )}
 
-                    {/* Reviews List */}
                     {reviews.length === 0 ? (
                       <div className="text-center py-6 text-gray-500">
                         No reviews yet. Be the first to review this app!

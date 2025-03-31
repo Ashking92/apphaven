@@ -9,45 +9,92 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      app_reviews: {
+        Row: {
+          app_id: string
+          comment: string
+          created_at: string
+          id: string
+          rating: number
+          user_id: string
+        }
+        Insert: {
+          app_id: string
+          comment: string
+          created_at?: string
+          id?: string
+          rating: number
+          user_id: string
+        }
+        Update: {
+          app_id?: string
+          comment?: string
+          created_at?: string
+          id?: string
+          rating?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_reviews_app_id_fkey"
+            columns: ["app_id"]
+            isOneToOne: false
+            referencedRelation: "apps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       apps: {
         Row: {
+          app_url: string | null
           category: string
           created_at: string | null
           description: string | null
           developer: string
+          downloads: number | null
           features: string[] | null
+          icon_url: string | null
           id: string
           is_free: boolean | null
           name: string
           price: string | null
+          screenshots: string[] | null
           updated_at: string | null
           uploaded_by: string | null
           version: string
         }
         Insert: {
+          app_url?: string | null
           category: string
           created_at?: string | null
           description?: string | null
           developer: string
+          downloads?: number | null
           features?: string[] | null
+          icon_url?: string | null
           id?: string
           is_free?: boolean | null
           name: string
           price?: string | null
+          screenshots?: string[] | null
           updated_at?: string | null
           uploaded_by?: string | null
           version: string
         }
         Update: {
+          app_url?: string | null
           category?: string
           created_at?: string | null
           description?: string | null
           developer?: string
+          downloads?: number | null
           features?: string[] | null
+          icon_url?: string | null
           id?: string
           is_free?: boolean | null
           name?: string
           price?: string | null
+          screenshots?: string[] | null
           updated_at?: string | null
           uploaded_by?: string | null
           version?: string
