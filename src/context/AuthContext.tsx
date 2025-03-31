@@ -11,7 +11,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<void>; // Added this for Auth.tsx
+  resetPassword: (email: string) => Promise<void>;
   loading: boolean;
 }
 
@@ -23,7 +23,7 @@ const AuthContext = createContext<AuthContextType>({
   signIn: async () => {},
   signUp: async () => {},
   signOut: async () => {},
-  resetPassword: async () => {}, // Added this for Auth.tsx
+  resetPassword: async () => {},
   loading: true,
 });
 
@@ -71,6 +71,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const checkAdminStatus = async (userId: string) => {
     try {
+      console.log("Checking admin status for userId:", userId);
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('is_admin')
@@ -83,6 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
+      console.log("Admin check result:", data);
       setIsAdmin(data?.is_admin || false);
     } catch (error) {
       console.error('Error checking admin status:', error);
