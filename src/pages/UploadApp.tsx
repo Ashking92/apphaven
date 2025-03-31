@@ -1,442 +1,568 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { useToast } from '@/hooks/use-toast';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { toast } from 'sonner';
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from '@/components/ui/card';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { v4 as uuidv4 } from 'uuid';
+import { Separator } from '@/components/ui/separator';
+import { ArrowLeft, Upload, X, Plus, ImagePlus, FileType } from 'lucide-react';
 
 const UploadApp = () => {
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const { user } = useAuth();
-  
-  const [appData, setAppData] = useState({
-    name: '',
-    description: '',
-    category: '',
-    version: '',
-    developer: '',
-    isFree: true,
-    price: '',
-    features: ['', '', '']
-  });
-  
+  const [name, setName] = useState('');
+  const [developer, setDeveloper] = useState('');
+  const [version, setVersion] = useState('1.0.0');
+  const [category, setCategory] = useState('');
+  const [description, setDescription] = useState('');
+  const [features, setFeatures] = useState<string[]>(['']);
+  const [isFree, setIsFree] = useState(true);
+  const [price, setPrice] = useState('');
+  const [iconFile, setIconFile] = useState<File | null>(null);
+  const [apkFile, setApkFile] = useState<File | null>(null);
+  const [screenshotFiles, setScreenshotFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [appIcon, setAppIcon] = useState<File | null>(null);
-  const [appFile, setAppFile] = useState<File | null>(null);
-  const [screenshots, setScreenshots] = useState<File[]>([]);
-  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [iconPreview, setIconPreview] = useState<string | null>(null);
+  const [screenshotPreviews, setScreenshotPreviews] = useState<string[]>([]);
   
-  const categories = [
-    'Games', 'Business', 'Photography', 'Music & Audio', 'Utilities',
-    'Productivity', 'Shopping', 'Education', 'Health & Fitness', 'Social'
-  ];
-  
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setAppData(prev => ({ ...prev, [name]: value }));
-  };
-  
-  const handleSelectChange = (name: string, value: string) => {
-    setAppData(prev => ({ ...prev, [name]: value }));
-  };
-  
-  const handleSwitchChange = (checked: boolean) => {
-    setAppData(prev => ({ ...prev, isFree: checked }));
-  };
-  
-  const handleFeatureChange = (index: number, value: string) => {
-    const updatedFeatures = [...appData.features];
-    updatedFeatures[index] = value;
-    setAppData(prev => ({ ...prev, features: updatedFeatures }));
-  };
-  
-  const addFeatureField = () => {
-    setAppData(prev => ({ ...prev, features: [...prev.features, ''] }));
-  };
-  
-  const removeFeatureField = (index: number) => {
-    const updatedFeatures = [...appData.features];
-    updatedFeatures.splice(index, 1);
-    setAppData(prev => ({ ...prev, features: updatedFeatures }));
-  };
-  
-  const handleAppIconChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const navigate = useNavigate();
+  const { user, isAdmin } = useAuth();
+
+  if (!user || !isAdmin) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Navbar />
+        <div className="flex-grow flex items-center justify-center">
+          <div className="text-center max-w-md p-6">
+            <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
+            <p className="mb-6">You need to be logged in as an admin to upload apps.</p>
+            <Button onClick={() => navigate('/')}>Return to Home</Button>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  const handleIconChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setAppIcon(e.target.files[0]);
-    }
-  };
-  
-  const handleAppFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setAppFile(e.target.files[0]);
-    }
-  };
-  
-  const handleScreenshotChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newFiles = Array.from(e.target.files);
-      const newUrls = newFiles.map(file => URL.createObjectURL(file));
+      const file = e.target.files[0];
+      setIconFile(file);
       
-      setScreenshots(prev => [...prev, ...newFiles]);
-      setPreviewUrls(prev => [...prev, ...newUrls]);
+      // Create a preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setIconPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
-  };
-  
-  const removeScreenshot = (index: number) => {
-    const updatedScreenshots = [...screenshots];
-    const updatedUrls = [...previewUrls];
-    
-    URL.revokeObjectURL(updatedUrls[index]);
-    updatedScreenshots.splice(index, 1);
-    updatedUrls.splice(index, 1);
-    
-    setScreenshots(updatedScreenshots);
-    setPreviewUrls(updatedUrls);
   };
 
-  const uploadFile = async (file: File, bucket: string, folderPath: string) => {
-    const fileExt = file.name.split('.').pop();
-    const filePath = `${folderPath}/${uuidv4()}.${fileExt}`;
-    
-    const { error: uploadError, data } = await supabase.storage
-      .from(bucket)
-      .upload(filePath, file);
-      
-    if (uploadError) {
-      throw new Error(`Error uploading file: ${uploadError.message}`);
+  const handleApkChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setApkFile(e.target.files[0]);
     }
-    
-    return filePath;
   };
-  
+
+  const handleScreenshotChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const newFiles = Array.from(e.target.files);
+      setScreenshotFiles(prev => [...prev, ...newFiles]);
+      
+      // Create preview URLs
+      newFiles.forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setScreenshotPreviews(prev => [...prev, reader.result as string]);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
+  const removeScreenshot = (index: number) => {
+    setScreenshotFiles(prev => prev.filter((_, i) => i !== index));
+    setScreenshotPreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const addFeatureField = () => {
+    setFeatures([...features, '']);
+  };
+
+  const updateFeature = (index: number, value: string) => {
+    const updatedFeatures = [...features];
+    updatedFeatures[index] = value;
+    setFeatures(updatedFeatures);
+  };
+
+  const removeFeature = (index: number) => {
+    if (features.length > 1) {
+      const updatedFeatures = [...features];
+      updatedFeatures.splice(index, 1);
+      setFeatures(updatedFeatures);
+    }
+  };
+
+  const validateForm = () => {
+    if (!name.trim()) return 'App name is required';
+    if (!developer.trim()) return 'Developer name is required';
+    if (!version.trim()) return 'Version is required';
+    if (!category) return 'Category is required';
+    if (!description.trim()) return 'Description is required';
+    if (!features[0].trim()) return 'At least one feature is required';
+    if (!isFree && !price.trim()) return 'Price is required for paid apps';
+    if (!iconFile) return 'App icon is required';
+    if (!apkFile) return 'App APK file is required';
+    return null;
+  };
+
+  const uploadFile = async (file: File, bucket: string, folder: string) => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${folder}/${uuidv4()}.${fileExt}`;
+    
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+    
+    if (error) throw error;
+    
+    const { data: urlData } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(fileName);
+    
+    return urlData.publicUrl;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation
-    if (!appData.name || !appData.description || !appData.category || !appIcon || !appFile) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields and upload the necessary files.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!appData.isFree && !appData.price) {
-      toast({
-        title: "Price Required",
-        description: "Please enter a price for your app.",
-        variant: "destructive"
-      });
+    const validationError = validateForm();
+    if (validationError) {
+      toast.error(validationError);
       return;
     }
     
     setIsUploading(true);
     
     try {
-      // Upload app icon
-      const appIconPath = await uploadFile(appIcon, 'app_files', 'icons');
+      // Upload icon
+      const iconUrl = await uploadFile(iconFile!, 'app_assets', 'icons');
       
-      // Upload app file
-      const appFilePath = await uploadFile(appFile, 'app_files', 'applications');
+      // Upload APK file
+      const apkUrl = await uploadFile(apkFile!, 'app_assets', 'apks');
       
       // Upload screenshots
-      const screenshotPaths = [];
-      for (const screenshot of screenshots) {
-        const path = await uploadFile(screenshot, 'app_screenshots', 'screenshots');
-        screenshotPaths.push(path);
+      const screenshotUrls = [];
+      for (const screenshot of screenshotFiles) {
+        const url = await uploadFile(screenshot, 'app_assets', 'screenshots');
+        screenshotUrls.push(url);
       }
       
-      // Convert non-empty features to array
-      const filteredFeatures = appData.features.filter(feature => feature.trim() !== '');
+      // Filter out empty features
+      const filteredFeatures = features.filter(f => f.trim() !== '');
       
-      // Create app record in database
-      const { error: insertError } = await supabase.from('apps').insert({
-        name: appData.name,
-        description: appData.description,
-        category: appData.category,
-        version: appData.version,
-        developer: appData.developer,
-        is_free: appData.isFree,
-        price: appData.isFree ? null : appData.price,
-        features: filteredFeatures,
-        uploaded_by: user?.id,
-        icon_path: appIconPath,
-        file_path: appFilePath,
-        screenshot_paths: screenshotPaths
+      // Create app record
+      const { data, error } = await supabase
+        .from('apps')
+        .insert({
+          name,
+          developer,
+          version,
+          category,
+          description,
+          features: filteredFeatures,
+          is_free: isFree,
+          price: isFree ? null : price,
+          uploaded_by: user.id,
+          icon_url: iconUrl,
+          app_url: apkUrl,
+          screenshots: screenshotUrls,
+          downloads: 0
+        })
+        .select();
+      
+      if (error) throw error;
+      
+      toast.success('App uploaded successfully!', {
+        description: 'Your app has been added to the store.'
       });
       
-      if (insertError) {
-        throw new Error(`Error creating app record: ${insertError.message}`);
-      }
-      
-      toast({
-        title: "App Submitted",
-        description: "Your app has been successfully uploaded.",
-      });
-      
-      // Redirect to home page after successful upload
-      setTimeout(() => {
-        navigate('/');
-      }, 2000);
-      
+      // Redirect to the app detail page
+      navigate(`/app/${data[0].id}`);
     } catch (error: any) {
-      console.error('Upload error:', error);
-      toast({
-        title: "Upload Failed",
-        description: error.message,
-        variant: "destructive"
+      toast.error('Failed to upload app', {
+        description: error.message
       });
     } finally {
       setIsUploading(false);
     }
   };
-  
+
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
-      <main className="flex-grow bg-muted dark:bg-background">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="bg-card dark:bg-card rounded-2xl shadow-md overflow-hidden border border-border">
-            <div className="p-6 sm:p-10">
-              <h1 className="text-3xl font-bold text-card-foreground mb-6">Upload Your App</h1>
-              <p className="text-muted-foreground mb-8">
-                Share your application with our community. Fill in the details below to get started.
-              </p>
-              
-              <form onSubmit={handleSubmit} className="space-y-8">
-                <div className="space-y-6">
-                  <div className="grid gap-6 sm:grid-cols-2">
+      <main className="flex-grow py-8 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
+          <Button
+            variant="ghost"
+            className="mb-6"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-2xl">Upload New App</CardTitle>
+              <CardDescription>
+                Fill in the details below to add a new app to the store.
+              </CardDescription>
+            </CardHeader>
+            
+            <form onSubmit={handleSubmit}>
+              <CardContent className="space-y-6">
+                {/* Basic Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Basic Information</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="name">App Name*</Label>
+                      <Label htmlFor="name">App Name</Label>
                       <Input
                         id="name"
-                        name="name"
-                        placeholder="App Name"
-                        value={appData.name}
-                        onChange={handleChange}
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Enter app name"
                         required
                       />
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="developer">Developer Name*</Label>
+                      <Label htmlFor="developer">Developer</Label>
                       <Input
                         id="developer"
-                        name="developer"
-                        placeholder="Developer or Company Name"
-                        value={appData.developer}
-                        onChange={handleChange}
+                        value={developer}
+                        onChange={(e) => setDeveloper(e.target.value)}
+                        placeholder="Enter developer name"
                         required
                       />
                     </div>
-                  </div>
-                  
-                  <div className="grid gap-6 sm:grid-cols-2">
+                    
                     <div className="space-y-2">
-                      <Label htmlFor="category">Category*</Label>
-                      <Select
-                        value={appData.category}
-                        onValueChange={(value) => handleSelectChange('category', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a category" />
+                      <Label htmlFor="version">Version</Label>
+                      <Input
+                        id="version"
+                        value={version}
+                        onChange={(e) => setVersion(e.target.value)}
+                        placeholder="1.0.0"
+                        required
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="category">Category</Label>
+                      <Select value={category} onValueChange={setCategory} required>
+                        <SelectTrigger id="category">
+                          <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                         <SelectContent>
-                          {categories.map((category) => (
-                            <SelectItem key={category} value={category}>
-                              {category}
-                            </SelectItem>
-                          ))}
+                          <SelectItem value="Games">Games</SelectItem>
+                          <SelectItem value="Business">Business</SelectItem>
+                          <SelectItem value="Education">Education</SelectItem>
+                          <SelectItem value="Entertainment">Entertainment</SelectItem>
+                          <SelectItem value="Productivity">Productivity</SelectItem>
+                          <SelectItem value="Utilities">Utilities</SelectItem>
+                          <SelectItem value="Social">Social</SelectItem>
+                          <SelectItem value="Health & Fitness">Health & Fitness</SelectItem>
+                          <SelectItem value="Travel">Travel</SelectItem>
+                          <SelectItem value="Photography">Photography</SelectItem>
+                          <SelectItem value="Music & Audio">Music & Audio</SelectItem>
+                          <SelectItem value="Shopping">Shopping</SelectItem>
+                          <SelectItem value="Finance">Finance</SelectItem>
+                          <SelectItem value="Weather">Weather</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="version">Version*</Label>
-                      <Input
-                        id="version"
-                        name="version"
-                        placeholder="e.g., 1.0.0"
-                        value={appData.version}
-                        onChange={handleChange}
-                        required
-                      />
-                    </div>
                   </div>
+                </div>
+                
+                <Separator />
+                
+                {/* Description and Features */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Description and Features</h3>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="description">Description*</Label>
+                    <Label htmlFor="description">Description</Label>
                     <Textarea
                       id="description"
-                      name="description"
-                      placeholder="Describe your app and its features"
-                      value={appData.description}
-                      onChange={handleChange}
-                      rows={5}
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Describe your app"
+                      className="min-h-[120px]"
                       required
                     />
                   </div>
                   
-                  <div className="space-y-4">
-                    <Label>Features</Label>
-                    {appData.features.map((feature, index) => (
-                      <div key={index} className="flex items-center space-x-2">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center mb-2">
+                      <Label>Features</Label>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={addFeatureField}
+                      >
+                        <Plus className="h-4 w-4 mr-1" /> Add Feature
+                      </Button>
+                    </div>
+                    
+                    {features.map((feature, index) => (
+                      <div key={index} className="flex items-center gap-2">
                         <Input
-                          placeholder={`Feature ${index + 1}`}
                           value={feature}
-                          onChange={(e) => handleFeatureChange(index, e.target.value)}
+                          onChange={(e) => updateFeature(index, e.target.value)}
+                          placeholder={`Feature ${index + 1}`}
+                          required={index === 0}
                         />
-                        {appData.features.length > 1 && (
+                        {features.length > 1 && (
                           <Button
                             type="button"
                             variant="ghost"
                             size="icon"
-                            onClick={() => removeFeatureField(index)}
+                            onClick={() => removeFeature(index)}
                           >
                             <X className="h-4 w-4" />
                           </Button>
                         )}
                       </div>
                     ))}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="mt-2"
-                      onClick={addFeatureField}
-                    >
-                      <Plus className="h-4 w-4 mr-2" /> Add Feature
-                    </Button>
                   </div>
+                </div>
+                
+                <Separator />
+                
+                {/* Pricing */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Pricing</h3>
                   
                   <div className="flex items-center space-x-2">
-                    <Switch
-                      id="free-app"
-                      checked={appData.isFree}
-                      onCheckedChange={handleSwitchChange}
+                    <Checkbox
+                      id="is-free"
+                      checked={isFree}
+                      onCheckedChange={(checked) => setIsFree(checked as boolean)}
                     />
-                    <Label htmlFor="free-app">Free App</Label>
+                    <Label htmlFor="is-free">This app is free</Label>
                   </div>
                   
-                  {!appData.isFree && (
+                  {!isFree && (
                     <div className="space-y-2">
-                      <Label htmlFor="price">Price*</Label>
+                      <Label htmlFor="price">Price</Label>
                       <Input
                         id="price"
-                        name="price"
-                        placeholder="e.g., $4.99"
-                        value={appData.price}
-                        onChange={handleChange}
-                        required={!appData.isFree}
+                        value={price}
+                        onChange={(e) => setPrice(e.target.value)}
+                        placeholder="$0.99"
+                        required={!isFree}
                       />
                     </div>
                   )}
+                </div>
+                
+                <Separator />
+                
+                {/* App Files */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">App Files</h3>
                   
-                  <div className="grid gap-6 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Icon Upload */}
                     <div className="space-y-2">
-                      <Label htmlFor="app-icon">App Icon*</Label>
-                      <div className="flex items-center justify-center border-2 border-dashed border-border rounded-lg p-6">
-                        <label className="flex flex-col items-center cursor-pointer">
-                          <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                          <span className="text-sm text-muted-foreground">Upload Icon (512x512px)</span>
-                          <Input
-                            id="app-icon"
-                            type="file"
-                            className="hidden"
-                            accept="image/*"
-                            onChange={handleAppIconChange}
-                          />
-                        </label>
+                      <Label htmlFor="icon">App Icon</Label>
+                      <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-4 h-40">
+                        {iconPreview ? (
+                          <div className="relative w-full h-full">
+                            <img
+                              src={iconPreview}
+                              alt="App icon preview"
+                              className="w-full h-full object-contain"
+                            />
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              className="absolute top-0 right-0"
+                              onClick={() => {
+                                setIconFile(null);
+                                setIconPreview(null);
+                              }}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <label
+                            htmlFor="icon"
+                            className="flex flex-col items-center justify-center cursor-pointer w-full h-full"
+                          >
+                            <ImagePlus className="h-8 w-8 text-gray-400 mb-2" />
+                            <span className="text-sm text-gray-500 dark:text-gray-400">
+                              Click to upload icon
+                            </span>
+                            <input
+                              id="icon"
+                              type="file"
+                              className="hidden"
+                              accept="image/*"
+                              onChange={handleIconChange}
+                              required
+                            />
+                          </label>
+                        )}
                       </div>
-                      {appIcon && (
-                        <p className="text-sm text-muted-foreground mt-2">{appIcon.name}</p>
-                      )}
+                      <p className="text-xs text-gray-500">
+                        Recommended size: 512x512px
+                      </p>
                     </div>
                     
+                    {/* APK Upload */}
                     <div className="space-y-2">
-                      <Label htmlFor="app-file">App Package*</Label>
-                      <div className="flex items-center justify-center border-2 border-dashed border-border rounded-lg p-6">
-                        <label className="flex flex-col items-center cursor-pointer">
-                          <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                          <span className="text-sm text-muted-foreground">Upload App File (.apk or .zip)</span>
-                          <Input
-                            id="app-file"
-                            type="file"
-                            className="hidden"
-                            accept=".apk,.zip,.rar,.7z"
-                            onChange={handleAppFileChange}
-                          />
-                        </label>
+                      <Label htmlFor="apk">App APK File</Label>
+                      <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-4 h-40">
+                        {apkFile ? (
+                          <div className="flex flex-col items-center justify-center w-full h-full">
+                            <FileType className="h-8 w-8 text-primary mb-2" />
+                            <span className="text-sm font-medium">{apkFile.name}</span>
+                            <span className="text-xs text-gray-500 mt-1">
+                              {(apkFile.size / (1024 * 1024)).toFixed(2)} MB
+                            </span>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="mt-2"
+                              onClick={() => setApkFile(null)}
+                            >
+                              <X className="h-4 w-4 mr-1" /> Remove
+                            </Button>
+                          </div>
+                        ) : (
+                          <label
+                            htmlFor="apk"
+                            className="flex flex-col items-center justify-center cursor-pointer w-full h-full"
+                          >
+                            <Upload className="h-8 w-8 text-gray-400 mb-2" />
+                            <span className="text-sm text-gray-500 dark:text-gray-400">
+                              Click to upload APK
+                            </span>
+                            <input
+                              id="apk"
+                              type="file"
+                              className="hidden"
+                              accept=".apk"
+                              onChange={handleApkChange}
+                              required
+                            />
+                          </label>
+                        )}
                       </div>
-                      {appFile && (
-                        <p className="text-sm text-muted-foreground mt-2">{appFile.name}</p>
-                      )}
+                      <p className="text-xs text-gray-500">
+                        Maximum file size: 100MB
+                      </p>
                     </div>
                   </div>
                   
+                  {/* Screenshots */}
                   <div className="space-y-2">
-                    <Label htmlFor="screenshots">Screenshots</Label>
-                    <div className="flex items-center justify-center border-2 border-dashed border-border rounded-lg p-6">
-                      <label className="flex flex-col items-center cursor-pointer">
-                        <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                        <span className="text-sm text-muted-foreground">Upload Screenshots (Max 5)</span>
-                        <Input
+                    <div className="flex justify-between items-center mb-2">
+                      <Label htmlFor="screenshots">Screenshots</Label>
+                      <label
+                        htmlFor="screenshots"
+                        className="cursor-pointer inline-flex items-center text-primary text-sm"
+                      >
+                        <Plus className="h-4 w-4 mr-1" /> Add Screenshot
+                        <input
                           id="screenshots"
                           type="file"
                           className="hidden"
                           accept="image/*"
                           multiple
                           onChange={handleScreenshotChange}
-                          disabled={previewUrls.length >= 5}
                         />
                       </label>
                     </div>
                     
-                    {previewUrls.length > 0 && (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mt-4">
-                        {previewUrls.map((url, index) => (
-                          <div key={index} className="relative group">
+                    {screenshotPreviews.length > 0 ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        {screenshotPreviews.map((preview, index) => (
+                          <div key={index} className="relative rounded-lg overflow-hidden h-40">
                             <img
-                              src={url}
+                              src={preview}
                               alt={`Screenshot ${index + 1}`}
-                              className="h-24 w-full object-cover rounded-lg border border-border"
+                              className="w-full h-full object-cover"
                             />
-                            <button
+                            <Button
                               type="button"
+                              variant="destructive"
+                              size="icon"
+                              className="absolute top-1 right-1"
                               onClick={() => removeScreenshot(index)}
-                              className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                             >
-                              <X className="h-3 w-3" />
-                            </button>
+                              <X className="h-4 w-4" />
+                            </Button>
                           </div>
                         ))}
+                      </div>
+                    ) : (
+                      <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-8 text-center">
+                        <p className="text-gray-500 dark:text-gray-400">
+                          No screenshots added yet. Add at least one screenshot.
+                        </p>
                       </div>
                     )}
                   </div>
                 </div>
-                
-                <div className="flex justify-end space-x-4">
-                  <Button type="button" variant="outline" onClick={() => navigate('/')}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={isUploading}>
-                    {isUploading ? "Uploading..." : "Submit App"}
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </div>
+              </CardContent>
+              
+              <CardFooter className="flex justify-end">
+                <Button type="submit" disabled={isUploading}>
+                  {isUploading ? (
+                    <>
+                      <div className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
+                      Uploading...
+                    </>
+                  ) : (
+                    'Upload App'
+                  )}
+                </Button>
+              </CardFooter>
+            </form>
+          </Card>
         </div>
       </main>
       <Footer />

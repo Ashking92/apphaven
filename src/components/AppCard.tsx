@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Star } from 'lucide-react';
+import { Star, Download, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -14,9 +14,10 @@ interface AppCardProps {
   downloads: string;
   imageUrl: string;
   free: boolean;
+  price?: string;
 }
 
-const AppCard = ({ id, name, developer, category, rating, downloads, imageUrl, free }: AppCardProps) => {
+const AppCard = ({ id, name, developer, category, rating, downloads, imageUrl, free, price }: AppCardProps) => {
   return (
     <div className="app-card bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-200 dark:border-gray-700">
       <Link to={`/app/${id}`}>
@@ -47,11 +48,16 @@ const AppCard = ({ id, name, developer, category, rating, downloads, imageUrl, f
         
         <div className="flex justify-between items-center">
           <span className={`text-sm font-medium ${free ? 'text-green-500' : 'text-blue-500'}`}>
-            {free ? 'Free' : 'Premium'}
+            {free ? 'Free' : price || 'Premium'}
           </span>
-          <Button variant="default" size="sm" className="px-3">
-            Download
-          </Button>
+          <div className="flex space-x-2">
+            <Button variant="outline" size="sm" className="p-0 w-8 h-8">
+              <Share2 className="h-4 w-4" />
+            </Button>
+            <Button variant="default" size="sm" className="px-3">
+              Download
+            </Button>
+          </div>
         </div>
       </div>
     </div>
