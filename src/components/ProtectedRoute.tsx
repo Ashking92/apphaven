@@ -1,7 +1,8 @@
 
-import React from 'react';
-import { Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { toast } from 'sonner';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -9,7 +10,17 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, adminOnly = false }) => {
-  const { isAuthenticated, isAdmin, loading } = useAuth();
+  const { isAuthenticated, isAdmin, loading, user } = useAuth();
+  const location = useLocation();
+
+  useEffect(() => {
+    // Log authentication status for debugging
+    console.log("Auth status:", { isAuthenticated, isAdmin, loading, userId: user?.id });
+    
+    if (!loading && adminOnly && !isAdmin) {
+      toast.error("You don't have permission to access this page");
+    }
+  }, [isAuthenticated, isAdmin, loading, adminOnly, user]);
 
   if (loading) {
     // Show loading state while checking authentication
@@ -22,7 +33,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, adminOnly = f
 
   // If not authenticated, redirect to login
   if (!isAuthenticated) {
-    return <Navigate to="/auth" />;
+    return <Navigate to="/auth" state={{ from: location.pathname }} />;
   }
 
   // If admin only and user is not admin, redirect to home
