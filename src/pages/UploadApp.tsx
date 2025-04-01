@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 import { 
   Card, 
   CardContent, 
@@ -29,6 +29,8 @@ import { useAuth } from '@/context/AuthContext';
 import { v4 as uuidv4 } from 'uuid';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Upload, X, Plus, ImagePlus, FileType } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const UploadApp = () => {
   const [name, setName] = useState('');
@@ -45,6 +47,8 @@ const UploadApp = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [iconPreview, setIconPreview] = useState<string | null>(null);
   const [screenshotPreviews, setScreenshotPreviews] = useState<string[]>([]);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
@@ -138,44 +142,63 @@ const UploadApp = () => {
   };
 
   const uploadFile = async (file: File, bucket: string, folder: string) => {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${folder}/${uuidv4()}.${fileExt}`;
-    
-    const { data, error } = await supabase.storage
-      .from(bucket)
-      .upload(fileName, file, {
-        cacheControl: '3600',
-        upsert: false
-      });
-    
-    if (error) throw error;
-    
-    const { data: urlData } = supabase.storage
-      .from(bucket)
-      .getPublicUrl(fileName);
-    
-    return urlData.publicUrl;
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${folder}/${uuidv4()}.${fileExt}`;
+      
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+      
+      if (error) throw error;
+      
+      // Get public URL for the file
+      const { data: urlData } = supabase.storage
+        .from(bucket)
+        .getPublicUrl(fileName);
+      
+      console.log(`Successfully uploaded ${folder} file:`, urlData.publicUrl);
+      return urlData.publicUrl;
+    } catch (error: any) {
+      console.error(`Error uploading ${folder} file:`, error.message);
+      throw new Error(`Failed to upload ${folder}: ${error.message}`);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setUploadError(null);
     
     const validationError = validateForm();
     if (validationError) {
-      toast.error(validationError);
+      toast({
+        variant: "destructive",
+        title: "Validation Error",
+        description: validationError
+      });
       return;
     }
     
     setIsUploading(true);
+    setUploadProgress(10);
     
     try {
       // Upload icon
+      setUploadProgress(20);
+      console.log("Uploading icon...");
       const iconUrl = await uploadFile(iconFile!, 'app_assets', 'icons');
       
       // Upload APK file
+      setUploadProgress(40);
+      console.log("Uploading APK...");
       const apkUrl = await uploadFile(apkFile!, 'app_assets', 'apks');
       
       // Upload screenshots
+      setUploadProgress(60);
+      console.log("Uploading screenshots...");
       const screenshotUrls = [];
       for (const screenshot of screenshotFiles) {
         const url = await uploadFile(screenshot, 'app_assets', 'screenshots');
@@ -186,6 +209,8 @@ const UploadApp = () => {
       const filteredFeatures = features.filter(f => f.trim() !== '');
       
       // Create app record
+      setUploadProgress(80);
+      console.log("Creating app record in database...");
       const { data, error } = await supabase
         .from('apps')
         .insert({
@@ -201,21 +226,31 @@ const UploadApp = () => {
           icon_url: iconUrl,
           app_url: apkUrl,
           screenshots: screenshotUrls,
-          downloads: 0
+          downloads: 0,
+          platform: 'android'
         })
         .select();
       
       if (error) throw error;
       
-      toast.success('App uploaded successfully!', {
-        description: 'Your app has been added to the store.'
+      setUploadProgress(100);
+      
+      toast({
+        title: "Success!",
+        description: "App uploaded successfully."
       });
       
       // Redirect to the app detail page
-      navigate(`/app/${data[0].id}`);
+      setTimeout(() => {
+        navigate(`/app/${data[0].id}`);
+      }, 1500);
     } catch (error: any) {
-      toast.error('Failed to upload app', {
-        description: error.message
+      console.error("Upload error:", error);
+      setUploadError(error.message || "Failed to upload app. Please try again.");
+      toast({
+        variant: "destructive",
+        title: "Upload Failed",
+        description: error.message || "An unexpected error occurred"
       });
     } finally {
       setIsUploading(false);
@@ -245,6 +280,23 @@ const UploadApp = () => {
             </CardHeader>
             
             <form onSubmit={handleSubmit}>
+              {uploadError && (
+                <div className="px-6">
+                  <Alert variant="destructive" className="mb-4">
+                    <AlertDescription>
+                      {uploadError}
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              )}
+              
+              {isUploading && (
+                <div className="px-6 mb-4">
+                  <p className="text-sm font-medium mb-2">Uploading... {uploadProgress}%</p>
+                  <Progress value={uploadProgress} className="h-2" />
+                </div>
+              )}
+              
               <CardContent className="space-y-6">
                 {/* Basic Information */}
                 <div className="space-y-4">
@@ -484,7 +536,7 @@ const UploadApp = () => {
                               id="apk"
                               type="file"
                               className="hidden"
-                              accept=".apk"
+                              accept=".apk,application/vnd.android.package-archive,application/octet-stream"
                               onChange={handleApkChange}
                               required
                             />
