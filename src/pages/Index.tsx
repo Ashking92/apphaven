@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import HeroSection from '@/components/HeroSection';
 import CategoryList from '@/components/CategoryList';
@@ -109,7 +108,7 @@ const Index = () => {
       const appsWithPlatform = data?.map(app => ({
         ...app,
         platform: app.platform || 'both'
-      })) || [];
+      })) as AppData[];
       
       setApps(appsWithPlatform);
       
