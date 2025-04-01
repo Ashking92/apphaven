@@ -7,17 +7,35 @@ import Footer from '@/components/Footer';
 import AppCard from '@/components/AppCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowRight, Android, Apple } from 'lucide-react';
+import { ArrowRight, Smartphone, Tablet } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
+// Define an interface for the app data
+interface AppData {
+  id: string;
+  name: string;
+  developer: string;
+  category: string;
+  icon_url: string;
+  is_free: boolean;
+  price?: string;
+  platform?: 'android' | 'ios' | 'both';
+  created_at: string;
+  description: string;
+  app_url: string;
+  downloads: number;
+  features: string[];
+  version: string;
+}
+
 const Index = () => {
-  const [apps, setApps] = useState<any[]>([]);
-  const [androidApps, setAndroidApps] = useState<any[]>([]);
-  const [iosApps, setIosApps] = useState<any[]>([]);
+  const [apps, setApps] = useState<AppData[]>([]);
+  const [androidApps, setAndroidApps] = useState<AppData[]>([]);
+  const [iosApps, setIosApps] = useState<AppData[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast: hookToast } = useToast();
   const { isAdmin } = useAuth();
@@ -87,13 +105,17 @@ const Index = () => {
 
       if (error) throw error;
       
-      setApps(data || []);
+      // Assuming platform might not exist in all records, provide a default
+      const appsWithPlatform = data?.map(app => ({
+        ...app,
+        platform: app.platform || 'both'
+      })) || [];
+      
+      setApps(appsWithPlatform);
       
       // Filter for Android and iOS apps
-      if (data) {
-        setAndroidApps(data.filter(app => app.platform === 'android' || app.platform === 'both'));
-        setIosApps(data.filter(app => app.platform === 'ios' || app.platform === 'both'));
-      }
+      setAndroidApps(appsWithPlatform.filter(app => app.platform === 'android' || app.platform === 'both'));
+      setIosApps(appsWithPlatform.filter(app => app.platform === 'ios' || app.platform === 'both'));
     } catch (error: any) {
       hookToast({
         title: 'Error fetching apps',
@@ -136,10 +158,10 @@ const Index = () => {
               <TabsList className="mb-6">
                 <TabsTrigger value="all">All Apps</TabsTrigger>
                 <TabsTrigger value="android" className="flex items-center gap-1">
-                  <Android size={16} /> Android
+                  <Smartphone size={16} /> Android
                 </TabsTrigger>
                 <TabsTrigger value="ios" className="flex items-center gap-1">
-                  <Apple size={16} /> iOS
+                  <Tablet size={16} /> iOS
                 </TabsTrigger>
               </TabsList>
               
@@ -164,10 +186,11 @@ const Index = () => {
                             developer={app.developer}
                             category={app.category}
                             rating={4.5} // Default rating
-                            downloads="0+" // Default downloads
+                            downloads={`${app.downloads || 0}+`} // Use actual downloads count if available
                             imageUrl={app.icon_url || "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&q=80&w=500"} // Use uploaded icon or default
                             free={app.is_free}
                             price={app.price}
+                            platform={app.platform}
                           />
                         ))}
                       </div>
@@ -189,10 +212,11 @@ const Index = () => {
                             developer={app.developer}
                             category={app.category}
                             rating={4.5} // Default rating
-                            downloads="0+" // Default downloads
+                            downloads={`${app.downloads || 0}+`} // Use actual downloads count if available
                             imageUrl={app.icon_url || "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&q=80&w=500"} // Use uploaded icon or default
                             free={app.is_free}
                             price={app.price}
+                            platform={app.platform}
                           />
                         ))}
                       </div>
@@ -214,10 +238,11 @@ const Index = () => {
                             developer={app.developer}
                             category={app.category}
                             rating={4.5} // Default rating
-                            downloads="0+" // Default downloads
+                            downloads={`${app.downloads || 0}+`} // Use actual downloads count if available
                             imageUrl={app.icon_url || "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&q=80&w=500"} // Use uploaded icon or default
                             free={app.is_free}
                             price={app.price}
+                            platform={app.platform}
                           />
                         ))}
                       </div>

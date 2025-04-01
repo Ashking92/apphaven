@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Star, Download, Share2, Android, Apple } from 'lucide-react';
+import { Star, Download, Share2, Smartphone, Tablet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -60,10 +60,10 @@ const AppCard = ({
         
         <div className="flex items-center mb-3">
           {platform === 'android' || platform === 'both' ? (
-            <Android className="h-4 w-4 mr-1 text-green-500" />
+            <Smartphone className="h-4 w-4 mr-1 text-green-500" />
           ) : null}
           {platform === 'ios' || platform === 'both' ? (
-            <Apple className="h-4 w-4 ml-1 text-gray-500" />
+            <Tablet className="h-4 w-4 ml-1 text-gray-500" />
           ) : null}
         </div>
         
