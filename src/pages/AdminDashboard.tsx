@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -47,7 +46,6 @@ const AdminDashboard = () => {
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
   const { isAdmin } = useAuth();
 
-  // Fetch apps data
   const fetchApps = async () => {
     try {
       setLoading(true);
@@ -70,7 +68,6 @@ const AdminDashboard = () => {
   useEffect(() => {
     fetchApps();
 
-    // Set up real-time subscription
     const channel = supabase
       .channel('schema-db-changes')
       .on(
@@ -104,27 +101,22 @@ const AdminDashboard = () => {
     };
   }, []);
 
-  // Handle search
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
   };
 
-  // Filter apps
   const filteredApps = apps.filter((app) => {
     let matches = true;
 
-    // Search term filter
     if (searchTerm && !app.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
         !app.developer.toLowerCase().includes(searchTerm.toLowerCase())) {
       matches = false;
     }
 
-    // Category filter
     if (filterCategory && app.category !== filterCategory) {
       matches = false;
     }
 
-    // Type filter (free/paid)
     if (filterType === 'free' && app.is_free !== true) {
       matches = false;
     } else if (filterType === 'paid' && app.is_free !== false) {
@@ -134,7 +126,6 @@ const AdminDashboard = () => {
     return matches;
   });
 
-  // Delete app
   const handleDeleteClick = (appId: string) => {
     setSelectedAppId(appId);
     setDeleteDialogOpen(true);
@@ -202,7 +193,6 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          {/* Filter and Search */}
           <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-6 space-y-4">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
@@ -222,7 +212,7 @@ const AdminDashboard = () => {
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Categories</SelectItem>
+                    <SelectItem value="all">All Categories</SelectItem>
                     <SelectItem value="Games">Games</SelectItem>
                     <SelectItem value="Business">Business</SelectItem>
                     <SelectItem value="Education">Education</SelectItem>
@@ -237,7 +227,7 @@ const AdminDashboard = () => {
                     <SelectValue placeholder="Type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Types</SelectItem>
+                    <SelectItem value="all">All Types</SelectItem>
                     <SelectItem value="free">Free</SelectItem>
                     <SelectItem value="paid">Paid</SelectItem>
                   </SelectContent>
@@ -246,7 +236,6 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          {/* App Preview */}
           <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-6">
             <h2 className="text-lg font-medium mb-4">Recent Apps</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -257,17 +246,17 @@ const AdminDashboard = () => {
                   name={app.name}
                   developer={app.developer}
                   category={app.category}
-                  rating={4.5} // Default rating
-                  downloads="0+" // Default downloads
+                  rating={4.5}
+                  downloads="0+"
                   imageUrl={app.icon_url || "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&q=80&w=500"}
                   free={app.is_free}
                   price={app.price}
+                  platform={app.platform}
                 />
               ))}
             </div>
           </div>
 
-          {/* Apps Table */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
             <div className="p-4 border-b border-gray-200 dark:border-gray-700">
               <h2 className="text-lg font-medium">All Apps ({filteredApps.length})</h2>
@@ -348,7 +337,6 @@ const AdminDashboard = () => {
         </div>
       </main>
 
-      {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
