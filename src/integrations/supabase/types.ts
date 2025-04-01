@@ -58,7 +58,7 @@ export type Database = {
           is_free: boolean | null
           name: string
           price: string | null
-          screenshots: string[] | null
+          screenshots_url: string | null
           updated_at: string | null
           uploaded_by: string | null
           version: string
@@ -76,7 +76,7 @@ export type Database = {
           is_free?: boolean | null
           name: string
           price?: string | null
-          screenshots?: string[] | null
+          screenshots_url?: string | null
           updated_at?: string | null
           uploaded_by?: string | null
           version: string
@@ -94,7 +94,7 @@ export type Database = {
           is_free?: boolean | null
           name?: string
           price?: string | null
-          screenshots?: string[] | null
+          screenshots_url?: string | null
           updated_at?: string | null
           uploaded_by?: string | null
           version?: string

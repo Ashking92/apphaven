@@ -25,5 +25,15 @@ supabase.auth.getSession().then(({ data, error }) => {
     console.error('Error getting initial session:', error);
   } else {
     console.log('Initial auth session:', data.session ? 'Logged in' : 'Not logged in');
+    // Load user profile if session exists
+    if (data.session?.user) {
+      console.log('User ID:', data.session.user.id);
+      console.log('User email:', data.session.user.email);
+    }
   }
+});
+
+// Listen for auth changes
+supabase.auth.onAuthStateChange((event, session) => {
+  console.log('Auth state changed:', event, session ? 'User authenticated' : 'User not authenticated');
 });

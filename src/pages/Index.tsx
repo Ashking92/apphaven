@@ -7,14 +7,17 @@ import Footer from '@/components/Footer';
 import AppCard from '@/components/AppCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Android, Apple } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from "sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Index = () => {
   const [apps, setApps] = useState<any[]>([]);
+  const [androidApps, setAndroidApps] = useState<any[]>([]);
+  const [iosApps, setIosApps] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast: hookToast } = useToast();
   const { isAdmin } = useAuth();
@@ -83,7 +86,14 @@ const Index = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      
       setApps(data || []);
+      
+      // Filter for Android and iOS apps
+      if (data) {
+        setAndroidApps(data.filter(app => app.platform === 'android' || app.platform === 'both'));
+        setIosApps(data.filter(app => app.platform === 'ios' || app.platform === 'both'));
+      }
     } catch (error: any) {
       hookToast({
         title: 'Error fetching apps',
@@ -102,7 +112,7 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <HeroSection />
           
-          {/* Apps Section */}
+          {/* Apps Section with Tabs */}
           <div className="py-8">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
               <h2 className="text-2xl font-bold text-gray-800 dark:text-white">All Apps</h2>
@@ -122,36 +132,100 @@ const Index = () => {
               </div>
             </div>
             
-            {loading ? (
-              <div className="flex justify-center p-12">
-                <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
-              </div>
-            ) : (
-              <>
-                {apps.length === 0 ? (
-                  <div className="text-center py-12">
-                    <p className="text-gray-500 dark:text-gray-400">No apps available yet.</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {apps.map((app) => (
-                      <AppCard 
-                        key={app.id}
-                        id={app.id}
-                        name={app.name}
-                        developer={app.developer}
-                        category={app.category}
-                        rating={4.5} // Default rating
-                        downloads="0+" // Default downloads
-                        imageUrl={app.icon_url || "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&q=80&w=500"} // Use uploaded icon or default
-                        free={app.is_free}
-                        price={app.price}
-                      />
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
+            <Tabs defaultValue="all" className="w-full">
+              <TabsList className="mb-6">
+                <TabsTrigger value="all">All Apps</TabsTrigger>
+                <TabsTrigger value="android" className="flex items-center gap-1">
+                  <Android size={16} /> Android
+                </TabsTrigger>
+                <TabsTrigger value="ios" className="flex items-center gap-1">
+                  <Apple size={16} /> iOS
+                </TabsTrigger>
+              </TabsList>
+              
+              {loading ? (
+                <div className="flex justify-center p-12">
+                  <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+                </div>
+              ) : (
+                <>
+                  <TabsContent value="all">
+                    {apps.length === 0 ? (
+                      <div className="text-center py-12">
+                        <p className="text-gray-500 dark:text-gray-400">No apps available yet.</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                        {apps.map((app) => (
+                          <AppCard 
+                            key={app.id}
+                            id={app.id}
+                            name={app.name}
+                            developer={app.developer}
+                            category={app.category}
+                            rating={4.5} // Default rating
+                            downloads="0+" // Default downloads
+                            imageUrl={app.icon_url || "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&q=80&w=500"} // Use uploaded icon or default
+                            free={app.is_free}
+                            price={app.price}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </TabsContent>
+                  
+                  <TabsContent value="android">
+                    {androidApps.length === 0 ? (
+                      <div className="text-center py-12">
+                        <p className="text-gray-500 dark:text-gray-400">No Android apps available yet.</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                        {androidApps.map((app) => (
+                          <AppCard 
+                            key={app.id}
+                            id={app.id}
+                            name={app.name}
+                            developer={app.developer}
+                            category={app.category}
+                            rating={4.5} // Default rating
+                            downloads="0+" // Default downloads
+                            imageUrl={app.icon_url || "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&q=80&w=500"} // Use uploaded icon or default
+                            free={app.is_free}
+                            price={app.price}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </TabsContent>
+                  
+                  <TabsContent value="ios">
+                    {iosApps.length === 0 ? (
+                      <div className="text-center py-12">
+                        <p className="text-gray-500 dark:text-gray-400">No iOS apps available yet.</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                        {iosApps.map((app) => (
+                          <AppCard 
+                            key={app.id}
+                            id={app.id}
+                            name={app.name}
+                            developer={app.developer}
+                            category={app.category}
+                            rating={4.5} // Default rating
+                            downloads="0+" // Default downloads
+                            imageUrl={app.icon_url || "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&q=80&w=500"} // Use uploaded icon or default
+                            free={app.is_free}
+                            price={app.price}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </TabsContent>
+                </>
+              )}
+            </Tabs>
           </div>
           
           <CategoryList />

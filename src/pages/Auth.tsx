@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,14 +9,25 @@ import { useAuth } from '@/context/AuthContext';
 import { toast } from "sonner";
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { LogIn, UserPlus, KeyRound } from 'lucide-react';
 
 const Auth = () => {
-  const { signIn, signUp, resetPassword } = useAuth();
+  const { signIn, signUp, resetPassword, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('login');
+  
+  // Redirect if user is already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      const from = location.state?.from || '/';
+      navigate(from);
+    }
+  }, [isAuthenticated, navigate, location.state]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,10 +37,21 @@ const Auth = () => {
       if (activeTab === 'login') {
         await signIn(email, password);
         toast.success('Signed in successfully');
-        navigate('/');
+        navigate(location.state?.from || '/');
       } else if (activeTab === 'register') {
+        if (password !== confirmPassword) {
+          toast.error('Passwords do not match');
+          return;
+        }
+        
+        if (password.length < 6) {
+          toast.error('Password must be at least 6 characters');
+          return;
+        }
+        
         await signUp(email, password);
         toast.success('Registration successful! Please check your email for verification.');
+        setActiveTab('login');
       } else if (activeTab === 'reset') {
         await resetPassword(email);
         toast.success('Password reset email sent');
@@ -60,9 +82,18 @@ const Auth = () => {
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid grid-cols-3 w-full">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="register">Register</TabsTrigger>
-              <TabsTrigger value="reset">Reset</TabsTrigger>
+              <TabsTrigger value="login" className="flex items-center gap-1">
+                <LogIn className="h-4 w-4" />
+                Login
+              </TabsTrigger>
+              <TabsTrigger value="register" className="flex items-center gap-1">
+                <UserPlus className="h-4 w-4" />
+                Register
+              </TabsTrigger>
+              <TabsTrigger value="reset" className="flex items-center gap-1">
+                <KeyRound className="h-4 w-4" />
+                Reset
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="login">
@@ -114,6 +145,16 @@ const Auth = () => {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password">Confirm Password</Label>
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     required
                   />
                   <p className="text-xs text-muted-foreground">Password must be at least 6 characters</p>

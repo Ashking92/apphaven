@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Star, Download, Share2 } from 'lucide-react';
+import { Star, Download, Share2, Android, Apple } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -15,9 +15,21 @@ interface AppCardProps {
   imageUrl: string;
   free: boolean;
   price?: string;
+  platform?: 'android' | 'ios' | 'both';
 }
 
-const AppCard = ({ id, name, developer, category, rating, downloads, imageUrl, free, price }: AppCardProps) => {
+const AppCard = ({ 
+  id, 
+  name, 
+  developer, 
+  category, 
+  rating, 
+  downloads, 
+  imageUrl, 
+  free, 
+  price,
+  platform = 'both'
+}: AppCardProps) => {
   return (
     <div className="app-card bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-200 dark:border-gray-700">
       <Link to={`/app/${id}`}>
@@ -44,6 +56,15 @@ const AppCard = ({ id, name, developer, category, rating, downloads, imageUrl, f
             <span className="text-gray-700 dark:text-gray-300">{rating}</span>
           </div>
           <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">({downloads})</span>
+        </div>
+        
+        <div className="flex items-center mb-3">
+          {platform === 'android' || platform === 'both' ? (
+            <Android className="h-4 w-4 mr-1 text-green-500" />
+          ) : null}
+          {platform === 'ios' || platform === 'both' ? (
+            <Apple className="h-4 w-4 ml-1 text-gray-500" />
+          ) : null}
         </div>
         
         <div className="flex justify-between items-center">
