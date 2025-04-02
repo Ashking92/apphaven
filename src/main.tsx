@@ -18,10 +18,15 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
   });
 }
 
-createRoot(document.getElementById("root")!).render(
-  <>
-    <App />
-    <AddToHomeScreenPrompt />
-    <Analytics />
-  </>
-);
+const root = document.getElementById("root");
+if (root) {
+  createRoot(root).render(
+    <>
+      <App />
+      <AddToHomeScreenPrompt />
+      <Analytics />
+    </>
+  );
+} else {
+  console.error("Root element not found");
+}

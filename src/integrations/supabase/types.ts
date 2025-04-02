@@ -16,7 +16,8 @@ export type Database = {
           created_at: string
           id: string
           rating: number
-          user_id: string
+          user_id: string | null
+          username: string
         }
         Insert: {
           app_id: string
@@ -24,7 +25,8 @@ export type Database = {
           created_at?: string
           id?: string
           rating: number
-          user_id: string
+          user_id?: string | null
+          username?: string
         }
         Update: {
           app_id?: string
@@ -32,7 +34,8 @@ export type Database = {
           created_at?: string
           id?: string
           rating?: number
-          user_id?: string
+          user_id?: string | null
+          username?: string
         }
         Relationships: [
           {
