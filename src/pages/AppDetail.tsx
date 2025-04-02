@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Star, Download, Share2, ArrowLeft, MessageCircle, ThumbsUp, Image } from 'lucide-react';
@@ -41,7 +42,7 @@ interface AppData {
 interface Review {
   id: string;
   app_id: string;
-  user_id: string;
+  user_id: string | null;
   username: string;
   rating: number;
   comment: string;
@@ -55,8 +56,8 @@ const AppDetail = () => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [userReview, setUserReview] = useState<string>('');
   const [userRating, setUserRating] = useState<number>(5);
+  const [reviewerName, setReviewerName] = useState<string>('Anonymous');
   const [submittingReview, setSubmittingReview] = useState(false);
-  const [userHasReviewed, setUserHasReviewed] = useState(false);
   const { toast: hookToast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -97,13 +98,6 @@ const AppDetail = () => {
       supabase.removeChannel(channel);
     };
   }, [id]);
-
-  useEffect(() => {
-    if (user && reviews.length > 0) {
-      const hasReviewed = reviews.some(review => review.user_id === user.id);
-      setUserHasReviewed(hasReviewed);
-    }
-  }, [reviews, user]);
 
   const fetchAppDetails = async () => {
     try {
@@ -154,38 +148,7 @@ const AppDetail = () => {
       if (error) throw error;
       
       console.log("Fetched reviews:", data);
-
-      const reviewsWithUsernames = await Promise.all(
-        (data || []).map(async (review: any) => {
-          const { data: userData, error: userError } = await supabase
-            .from('profiles')
-            .select('username')
-            .eq('id', review.user_id)
-            .single();
-
-          if (userError) {
-            console.error('Error fetching username:', userError);
-            return {
-              ...review,
-              username: 'Anonymous'
-            };
-          }
-
-          return {
-            ...review,
-            username: userData?.username || 'Anonymous'
-          };
-        })
-      );
-
-      console.log("Reviews with usernames:", reviewsWithUsernames);
-      setReviews(reviewsWithUsernames);
-      
-      if (user) {
-        const hasReviewed = reviewsWithUsernames.some((review: Review) => review.user_id === user.id);
-        setUserHasReviewed(hasReviewed);
-        console.log("User has reviewed:", hasReviewed);
-      }
+      setReviews(data || []);
     } catch (error: any) {
       console.error('Error fetching reviews:', error);
       toast.error('Error loading reviews', {
@@ -235,62 +198,29 @@ const AppDetail = () => {
   };
 
   const submitReview = async () => {
-    if (!user || !id || !userReview.trim()) return;
+    if (!id || !userReview.trim()) return;
 
     try {
       setSubmittingReview(true);
-      console.log("Submitting review for app:", id, "by user:", user.id);
-
-      const { data: existingReviews, error: checkError } = await supabase
+      
+      // Create new review with anonymous or custom username
+      const { error } = await supabase
         .from('app_reviews')
-        .select('id')
-        .eq('app_id', id)
-        .eq('user_id', user.id);
+        .insert({
+          app_id: id,
+          user_id: user?.id || null, // Make user_id optional
+          username: reviewerName.trim() || 'Anonymous',
+          rating: userRating,
+          comment: userReview.trim()
+        });
 
-      if (checkError) {
-        console.error('Error checking existing reviews:', checkError);
-        throw checkError;
+      if (error) {
+        throw error;
       }
-
-      let result;
-      if (existingReviews && existingReviews.length > 0) {
-        console.log("Updating existing review:", existingReviews[0].id);
-        result = await supabase
-          .from('app_reviews')
-          .update({
-            rating: userRating,
-            comment: userReview.trim()
-          })
-          .eq('id', existingReviews[0].id);
-        
-        if (result.error) throw result.error;
-        toast.success('Your review has been updated!');
-      } else {
-        console.log("Creating new review");
-        result = await supabase
-          .from('app_reviews')
-          .insert({
-            app_id: id,
-            user_id: user.id,
-            rating: userRating,
-            comment: userReview.trim()
-          });
-
-        if (result.error) {
-          if (result.error.code === '23505') {
-            toast.error('You have already reviewed this app', {
-              description: 'You can only submit one review per app'
-            });
-            setUserHasReviewed(true);
-            return;
-          }
-          throw result.error;
-        }
-        
-        toast.success('Review submitted successfully!');
-      }
-
+      
+      toast.success('Review submitted successfully!');
       setUserReview('');
+      setReviewerName('Anonymous');
       await fetchReviews();
     } catch (error: any) {
       console.error('Failed to submit review:', error);
@@ -462,13 +392,26 @@ const AppDetail = () => {
                   )}
 
                   <TabsContent value="reviews">
-                    {user ? (
-                      <Card className="mb-6">
-                        <CardHeader>
-                          <CardTitle className="text-lg">Write a Review</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="mb-4">
+                    <Card className="mb-6">
+                      <CardHeader>
+                        <CardTitle className="text-lg">Write a Review</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="mb-4 space-y-4">
+                          <div>
+                            <label htmlFor="reviewer-name" className="block text-sm font-medium mb-1">
+                              Your Name (optional)
+                            </label>
+                            <Input
+                              id="reviewer-name"
+                              placeholder="Anonymous"
+                              value={reviewerName}
+                              onChange={(e) => setReviewerName(e.target.value)}
+                              className="w-full"
+                            />
+                          </div>
+                          
+                          <div>
                             <div className="flex mb-2 items-center">
                               <span className="mr-2">Rating:</span>
                               <div className="flex">
@@ -488,24 +431,17 @@ const AppDetail = () => {
                               onChange={(e) => setUserReview(e.target.value)}
                             />
                           </div>
-                        </CardContent>
-                        <CardFooter>
-                          <Button 
-                            onClick={submitReview} 
-                            disabled={submittingReview || !userReview.trim()}
-                          >
-                            {submittingReview ? 'Submitting...' : 'Submit Review'}
-                          </Button>
-                        </CardFooter>
-                      </Card>
-                    ) : (
-                      <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg text-center">
-                        <p className="mb-2">Please sign in to leave a review.</p>
-                        <Link to="/auth">
-                          <Button>Sign In</Button>
-                        </Link>
-                      </div>
-                    )}
+                        </div>
+                      </CardContent>
+                      <CardFooter>
+                        <Button 
+                          onClick={submitReview} 
+                          disabled={submittingReview || !userReview.trim()}
+                        >
+                          {submittingReview ? 'Submitting...' : 'Submit Review'}
+                        </Button>
+                      </CardFooter>
+                    </Card>
 
                     {reviews.length === 0 ? (
                       <div className="text-center py-6 text-gray-500">
