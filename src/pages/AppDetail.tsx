@@ -1,7 +1,6 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Star, Download, Share2, ArrowLeft, MessageCircle, ThumbsUp, Image } from 'lucide-react';
+import { Star, Download, Share2, ArrowLeft, MessageCircle, ThumbsUp, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -148,7 +147,13 @@ const AppDetail = () => {
       if (error) throw error;
       
       console.log("Fetched reviews:", data);
-      setReviews(data || []);
+      
+      const reviewsWithUsername = data?.map(review => ({
+        ...review,
+        username: review.username || 'Anonymous'
+      })) || [];
+      
+      setReviews(reviewsWithUsername);
     } catch (error: any) {
       console.error('Error fetching reviews:', error);
       toast.error('Error loading reviews', {
@@ -203,12 +208,11 @@ const AppDetail = () => {
     try {
       setSubmittingReview(true);
       
-      // Create new review with anonymous or custom username
       const { error } = await supabase
         .from('app_reviews')
         .insert({
           app_id: id,
-          user_id: user?.id || null, // Make user_id optional
+          user_id: user?.id || null,
           username: reviewerName.trim() || 'Anonymous',
           rating: userRating,
           comment: userReview.trim()
@@ -371,7 +375,7 @@ const AppDetail = () => {
                         ))
                       ) : (
                         <div className="col-span-2 flex flex-col items-center justify-center p-8 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                          <Image className="h-16 w-16 text-gray-400 mb-4" />
+                          <ImageIcon className="h-16 w-16 text-gray-400 mb-4" />
                           <p className="text-gray-500 dark:text-gray-400">No screenshots available</p>
                         </div>
                       )}
