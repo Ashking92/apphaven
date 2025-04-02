@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Star, Download, Share2, ArrowLeft, MessageCircle, ThumbsUp, Image as ImageIcon } from 'lucide-react';
@@ -17,26 +18,36 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { format } from 'date-fns';
 import { useAuth } from '@/context/AuthContext';
+import { toast } from 'sonner';
 
+// Updated App interface to match the database schema
 interface App {
   id: string;
   name: string;
-  description: string;
+  description: string | null;
   category: string;
-  rating: number;
-  downloads: number;
-  image_url: string;
-  screenshots_url: string;
-  created_at: string;
-  updated_at: string;
-  submitted_by: string;
+  rating?: number;
+  downloads: number | null;
+  image_url?: string;
+  icon_url?: string;
+  screenshots_url: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  submitted_by?: string;
+  uploaded_by?: string | null;
   version: string;
-  file_size: string;
-  compatibility: string;
-  license: string;
-  website_url: string;
-  download_url: string;
-  admin_approved: boolean;
+  file_size?: string;
+  compatibility?: string;
+  license?: string;
+  website_url?: string;
+  app_url?: string | null;
+  download_url?: string;
+  price?: string | null;
+  developer: string;
+  is_free?: boolean | null;
+  platform?: string | null;
+  features?: string[] | null;
+  admin_approved?: boolean;
 }
 
 interface Review {
@@ -52,7 +63,7 @@ interface Review {
 const AppDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { toast: hookToast } = useToast();
   const { user } = useAuth();
 
   const [app, setApp] = useState<App | null>(null);
@@ -82,10 +93,36 @@ const AppDetail = () => {
 
       if (error) throw error;
 
-      setApp(data);
+      // Create a compatibility mapping between database fields and our App interface
+      const appData: App = {
+        id: data.id,
+        name: data.name,
+        description: data.description,
+        category: data.category,
+        rating: 0, // Default rating
+        downloads: data.downloads,
+        icon_url: data.icon_url,
+        screenshots_url: data.screenshots_url,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+        uploaded_by: data.uploaded_by,
+        version: data.version,
+        file_size: "Unknown", // Default file size
+        compatibility: "Android/iOS", // Default compatibility
+        license: "Free", // Default license
+        website_url: data.app_url,
+        download_url: data.app_url,
+        developer: data.developer,
+        price: data.price,
+        platform: data.platform,
+        features: data.features,
+        is_free: data.is_free
+      };
+
+      setApp(appData);
     } catch (error: any) {
       console.error('Error fetching app:', error);
-      toast({
+      hookToast({
         title: 'Error',
         description: error.message || 'Failed to load app details',
       });
@@ -103,31 +140,21 @@ const AppDetail = () => {
           text: app?.description || 'An awesome app you might like.',
           url: window.location.href,
         });
-        toast({
-          title: 'Shared!',
-          description: 'App shared successfully.',
-        });
+        toast.success('App shared successfully.');
       } catch (error: any) {
         console.error('Error sharing:', error);
-        toast({
-          title: 'Share Failed',
-          description: error.message || 'Could not share the app.',
+        toast.error('Could not share the app.', {
+          description: error.message
         });
       }
     } else {
-      toast({
-        title: 'Sharing Not Supported',
-        description: 'Your browser does not support sharing.',
-      });
+      toast.error('Your browser does not support sharing.');
     }
   };
 
   const handleDownload = () => {
     if (!app?.download_url) {
-      toast({
-        title: 'Download Error',
-        description: 'No download URL available.',
-      });
+      toast.error('No download URL available.');
       return;
     }
 
@@ -139,10 +166,7 @@ const AppDetail = () => {
     downloadLink.click();
     document.body.removeChild(downloadLink);
 
-    toast({
-      title: 'Download Started',
-      description: 'Your download should start automatically.',
-    });
+    toast.success('Your download should start automatically.');
   };
 
   const fetchReviews = async () => {
@@ -166,8 +190,8 @@ const AppDetail = () => {
       setReviews(reviewsWithUsername);
     } catch (error: any) {
       console.error('Error fetching reviews:', error);
-      toast.error('Error loading reviews', {
-        description: error.message || 'Failed to load reviews'
+      toast.error('Failed to load reviews', {
+        description: error.message
       });
     }
   };
@@ -211,8 +235,8 @@ const AppDetail = () => {
       await fetchReviews();
     } catch (error: any) {
       console.error('Error submitting review:', error);
-      toast.error('Error submitting review', {
-        description: error.message || 'Failed to submit review'
+      toast.error('Failed to submit review', {
+        description: error.message
       });
     } finally {
       setSubmittingReview(false);
@@ -240,7 +264,7 @@ const AppDetail = () => {
                 <Card>
                   <CardContent className="flex flex-col items-center justify-center p-6">
                     <img
-                      src={app.image_url}
+                      src={app.icon_url || '/placeholder.svg'}
                       alt={app.name}
                       className="rounded-md object-cover w-full h-48 mb-4"
                     />
@@ -248,10 +272,10 @@ const AppDetail = () => {
                     <p className="text-muted-foreground text-center">{app.description}</p>
                     <div className="flex items-center mt-4">
                       <Star className="text-yellow-500 mr-1" />
-                      <span>{app.rating}</span>
+                      <span>{app.rating || 0}</span>
                       <Separator orientation="vertical" className="mx-2 h-4" />
                       <Download className="mr-1" />
-                      <span>{app.downloads}</span>
+                      <span>{app.downloads || 0}</span>
                     </div>
                     <div className="flex mt-4 space-x-2">
                       <Button onClick={handleDownload}>
@@ -279,28 +303,28 @@ const AppDetail = () => {
                         <strong>Version:</strong> {app.version}
                       </div>
                       <div>
-                        <strong>File Size:</strong> {app.file_size}
+                        <strong>File Size:</strong> {app.file_size || 'Unknown'}
                       </div>
                       <div>
-                        <strong>Compatibility:</strong> {app.compatibility}
+                        <strong>Compatibility:</strong> {app.compatibility || 'Android/iOS'}
                       </div>
                       <div>
-                        <strong>License:</strong> {app.license}
+                        <strong>License:</strong> {app.license || 'Free'}
                       </div>
                       <div>
                         <strong>Website:</strong>{' '}
-                        <a href={app.website_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                        <a href={app.website_url || app.app_url || '#'} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
                           Visit Website
                         </a>
                       </div>
                       <div>
-                        <strong>Uploaded By:</strong> {app.submitted_by}
+                        <strong>Uploaded By:</strong> {app.submitted_by || app.developer || 'Unknown'}
                       </div>
                       <div>
-                        <strong>Uploaded At:</strong> {format(new Date(app.created_at), 'PPP')}
+                        <strong>Uploaded At:</strong> {app.created_at ? format(new Date(app.created_at), 'PPP') : 'Unknown'}
                       </div>
                       <div>
-                        <strong>Last Updated:</strong> {format(new Date(app.updated_at), 'PPP')}
+                        <strong>Last Updated:</strong> {app.updated_at ? format(new Date(app.updated_at), 'PPP') : 'Unknown'}
                       </div>
                     </div>
                   </CardContent>
@@ -371,9 +395,16 @@ const AppDetail = () => {
                   <TabsContent value="screenshots" className="mt-6">
                     {app.screenshots_url ? (
                       <ScreenshotGallery 
-                        screenshots={
-                          app.screenshots_url.split(',').map(url => url.trim())
-                        } 
+                        screenshots={app.screenshots_url.split(',').map(url => url.trim())}
+                        appId={app.id}
+                        onUpdate={(newScreenshots) => {
+                          if (app) {
+                            setApp({
+                              ...app,
+                              screenshots_url: newScreenshots.join(',')
+                            });
+                          }
+                        }}
                       />
                     ) : (
                       <div className="flex flex-col items-center justify-center p-8 bg-gray-100 dark:bg-gray-800 rounded-lg">
@@ -418,10 +449,18 @@ const AppDetail = () => {
                   </TabsContent>
                   
                   <TabsContent value="features" className="mt-6">
-                    <div className="flex flex-col items-center justify-center p-8 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                      <ThumbsUp className="h-16 w-16 text-gray-400 mb-4" />
-                      <p className="text-gray-500 dark:text-gray-400">No features specified for this app.</p>
-                    </div>
+                    {app.features && app.features.length > 0 ? (
+                      <ul className="list-disc pl-5 space-y-2">
+                        {app.features.map((feature, index) => (
+                          <li key={index} className="text-gray-700 dark:text-gray-300">{feature}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center p-8 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                        <ThumbsUp className="h-16 w-16 text-gray-400 mb-4" />
+                        <p className="text-gray-500 dark:text-gray-400">No features specified for this app.</p>
+                      </div>
+                    )}
                   </TabsContent>
                   
                   <TabsContent value="related" className="mt-6">
