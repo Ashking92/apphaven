@@ -346,12 +346,7 @@ const AppDetail = () => {
     return (sum / reviews.length).toFixed(1);
   };
 
-  const screenshots = app?.screenshots || [
-    'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&q=80&w=500',
-    'https://images.unsplash.com/photo-1552083375-1447ce886485?auto=format&fit=crop&q=80&w=500',
-    'https://images.unsplash.com/photo-1629757509637-7c99379d6d26?auto=format&fit=crop&q=80&w=500',
-    'https://images.unsplash.com/photo-1579403124614-197f69d8187b?auto=format&fit=crop&q=80&w=500'
-  ];
+  const screenshots = app?.screenshots || [];
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -442,15 +437,22 @@ const AppDetail = () => {
                   
                   <TabsContent value="screenshots">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {screenshots.map((screenshot, index) => (
-                        <div key={index} className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
-                          <img 
-                            src={screenshot} 
-                            alt={`${app?.name} screenshot ${index + 1}`} 
-                            className="w-full h-auto object-cover" 
-                          />
+                      {screenshots.length > 0 ? (
+                        screenshots.map((screenshot, index) => (
+                          <div key={index} className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+                            <img 
+                              src={screenshot} 
+                              alt={`${app?.name} screenshot ${index + 1}`} 
+                              className="w-full h-auto object-cover" 
+                            />
+                          </div>
+                        ))
+                      ) : (
+                        <div className="col-span-2 flex flex-col items-center justify-center p-8 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                          <Image className="h-16 w-16 text-gray-400 mb-4" />
+                          <p className="text-gray-500 dark:text-gray-400">No screenshots available</p>
                         </div>
-                      ))}
+                      )}
                     </div>
                   </TabsContent>
                   
